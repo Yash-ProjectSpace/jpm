@@ -1,116 +1,145 @@
-'use client'; // This is essential for the animation logic!
+'use client';
 
 import React, { useState, useEffect } from 'react';
 import Link from 'next/link';
+import { 
+  Zap, LayoutDashboard, Database, BarChart3, 
+  FolderKanban, Users, Search, Target, Laptop, 
+  Monitor, ClipboardCheck, User
+} from 'lucide-react';
 
 export default function LandingPage() {
-  // --- Animation State Logic ---
   const [isLoading, setIsLoading] = useState(true);
   const [progress, setProgress] = useState(0);
 
   useEffect(() => {
-    // 1. We simulate loading by incrementing the progress bar
-    const interval = setInterval(() => {
+    const progressInterval = setInterval(() => {
       setProgress((prev) => {
         if (prev >= 100) {
-          clearInterval(interval);
-          // 2. Short delay once 100% is reached to show the full bar
-          setTimeout(() => setIsLoading(false), 200); 
+          clearInterval(progressInterval);
           return 100;
         }
-        return prev + 10; // Progress increment (adjust speed here)
+        return prev + 5;
       });
-    }, 100); // Speed of the progress bar (adjust time here)
+    }, 75);
 
-    return () => clearInterval(interval);
+    const screenTimeout = setTimeout(() => {
+      setIsLoading(false);
+    }, 3000); 
+
+    return () => {
+      clearInterval(progressInterval);
+      clearTimeout(screenTimeout);
+    };
   }, []);
 
-  // --- 1. The Animated Loading Screen (visible while isLoading is true) ---
   if (isLoading) {
     return (
-      <div className="min-h-screen bg-slate-50 flex flex-col items-center justify-center p-6 text-center animate-fadeOut">
-        <div className="w-full max-w-sm flex flex-col items-center gap-12">
-          {/* Animated Logo (simple fade-in) */}
-          <h1 className="text-6xl font-black text-indigo-600 tracking-tighter animate-fadeInSlow">
-            JPM
-          </h1>
-
-          {/* Loading Bar Container (the track) */}
-          <div className="w-full bg-slate-100 h-1 rounded-full overflow-hidden border border-slate-200">
-            {/* The Animated Line (the moving part) */}
-            <div 
-              className="bg-indigo-600 h-full rounded-full transition-all duration-300 ease-out" 
-              style={{ width: `${progress}%` }}
-            />
+      <div className="fixed inset-0 z-[9999] bg-white flex flex-col items-center justify-center p-6 transition-opacity duration-500">
+        <div className="w-full max-w-sm flex flex-col items-center">
+          <div className="flex gap-4 mb-12 items-center justify-center animate-pulse">
+            <div className="w-16 h-16 bg-indigo-600 rounded-2xl flex items-center justify-center shadow-lg"><span className="text-white text-3xl font-black italic">J</span></div>
+            <div className="w-16 h-16 bg-indigo-500 rounded-2xl flex items-center justify-center shadow-lg"><span className="text-white text-3xl font-black italic">P</span></div>
+            <div className="w-16 h-16 bg-indigo-400 rounded-2xl flex items-center justify-center shadow-lg"><span className="text-white text-3xl font-black italic">M</span></div>
           </div>
-          <p className="text-sm text-slate-400 font-medium">JMC Project Management System</p>
+          <div className="w-64 h-1 bg-slate-100 rounded-full overflow-hidden mb-6">
+            <div className="bg-indigo-600 h-full transition-all duration-300" style={{ width: `${progress}%` }} />
+          </div>
+          <p className="text-[10px] text-slate-400 font-bold tracking-[0.3em] uppercase">JMC Portal Loading...</p>
         </div>
-
-        {/* Custom CSS for Animations */}
-        <style jsx global>{`
-          @keyframes fadeIn {
-            from { opacity: 0; }
-            to { opacity: 1; }
-          }
-          @keyframes fadeOut {
-            from { opacity: 1; }
-            to { opacity: 0; }
-          }
-          .animate-fadeInSlow {
-            animation: fadeIn 1s ease-out forwards;
-          }
-          .animate-fadeOut {
-            animation: fadeOut 0.5s ease-in-out forwards;
-            animation-delay: 1.2s; /* Adjust based on your loading speed */
-          }
-          .animate-landingFadeIn {
-            animation: fadeIn 0.8s ease-out forwards;
-          }
-        `}</style>
       </div>
     );
   }
 
-  // --- 2. The Final Landing Page Content (visible after loading ends) ---
-  // (All text has been translated into professional Japanese for JMC)
   return (
-    <div className="min-h-screen bg-slate-50 flex flex-col items-center justify-center p-6 text-center animate-landingFadeIn">
-      <h1 className="text-6xl font-black text-indigo-600 tracking-tighter mb-4">
-        JPM
-      </h1>
-      <p className="text-xl text-slate-600 max-w-2xl mb-10 font-medium">
-        JMC プロジェクト管理システム: タスク追跡、チーム管理、成果報告を一本化する高精度ワークスペース。
-      </p>
+    <div className="min-h-screen bg-white text-slate-900 overflow-hidden relative selection:bg-indigo-100">
+      
+      {/* Background Illustrations */}
+      <div className="absolute inset-0 z-0 pointer-events-none opacity-[0.8] animate-fadeInSlow">
+        <div className="absolute -left-10 top-1/4 rotate-[15deg]"><FolderKanban size={180} className="text-indigo-50" /></div>
+        <div className="absolute -right-20 top-1/3 rotate-[-15deg]"><BarChart3 size={200} className="text-indigo-100" /></div>
+        
+        {/* Soft Ambient Shapes */}
+        <div className="absolute top-[10%] left-[10%] w-64 h-64 bg-blue-50 rounded-full blur-3xl opacity-60" />
+        <div className="absolute bottom-[10%] right-[10%] w-80 h-80 bg-indigo-50 rounded-full blur-3xl opacity-60" />
 
-      <div className="flex flex-col sm:flex-row gap-4">
-        <Link 
-          href="/login" 
-          className="px-10 py-4 bg-indigo-600 text-white font-bold rounded-2xl shadow-lg hover:bg-indigo-700 transition-all active:scale-95"
-        >
-          ワークスペースにサインイン
-        </Link>
-        <Link 
-          href="/signup" 
-          className="px-10 py-4 bg-white text-slate-900 font-bold rounded-2xl shadow-md border border-slate-200 hover:bg-slate-50 transition-all active:scale-95"
-        >
-          新規アカウント作成
-        </Link>
+        <div className="absolute left-1/2 -translate-x-1/2 top-6 flex flex-col items-center">
+          <div className="w-14 h-16 bg-indigo-500 rounded-full flex items-center justify-center shadow-xl shadow-indigo-100 text-white">
+            <ClipboardCheck size={30} />
+          </div>
+          <div className="w-0.5 h-16 bg-slate-100 mt-2"></div>
+        </div>
       </div>
 
-      <div className="mt-20 grid grid-cols-1 md:grid-cols-3 gap-8 text-left max-w-5xl">
-        <div className="p-6 bg-white rounded-2xl border border-slate-100 shadow-sm">
-          <h3 className="font-bold text-slate-900 text-lg">タスク管理</h3>
-          <p className="text-slate-500 mt-2 text-sm">詳細なタスク管理システムにより、あらゆる進捗を確実に把握します。</p>
+      <main className="relative z-10 flex flex-col items-center justify-center min-h-screen px-6 text-center animate-landingFadeIn">
+        
+        {/* J P M Logo Area */}
+        <div className="mb-12 flex gap-1 items-center justify-center">
+          <div className="w-14 h-14 bg-indigo-600 rounded-2xl flex items-center justify-center shadow-lg"><span className="text-white text-2xl font-black italic">J</span></div>
+          <div className="w-14 h-14 bg-indigo-500 rounded-2xl flex items-center justify-center shadow-lg"><span className="text-white text-2xl font-black italic">P</span></div>
+          <div className="w-14 h-14 bg-indigo-400 rounded-2xl flex items-center justify-center shadow-lg"><span className="text-white text-2xl font-black italic">M</span></div>
         </div>
-        <div className="p-6 bg-white rounded-2xl border border-slate-100 shadow-sm">
-          <h3 className="font-bold text-slate-900 text-lg">チームレポート</h3>
-          <p className="text-slate-500 mt-2 text-sm">JMCの取り組みに関する視覚的なデータレポートを即座に生成します。</p>
+        
+        {/* Headline Section with Person Icon 1 */}
+        <div className="relative inline-block mb-8">
+          <h3 className="font-black text-slate-900 tracking-tighter leading-[1.1]">
+  {/* JMC size remains 5xl/7xl */}
+  <span className="text-5xl md:text-7xl">
+    JMCの
+  </span>
+  <br />
+  {/* App name size reduced to 4xl/6xl */}
+  <span className="text-indigo-600 text-4xl md:text-6xl">
+    プロジェクト管理アプリ
+  </span>
+</h3>
+          
+          {/* Person 1: Beside the Title (Hidden on small screens for clarity) */}
+          <div className="hidden lg:flex absolute -right-20 top-0 flex-col items-center animate-bounce duration-[3000ms]">
+            <div className="w-12 h-12 bg-blue-100 rounded-full flex items-center justify-center border-2 border-white shadow-sm">
+              <User className="text-blue-600" size={24} />
+            </div>
+            <Monitor size={16} className="text-slate-300 mt-1" />
+          </div>
         </div>
-        <div className="p-6 bg-white rounded-2xl border border-slate-100 shadow-sm">
-          <h3 className="font-bold text-slate-900 text-lg">社内掲示板</h3>
-          <p className="text-slate-500 mt-2 text-sm">全社的なお知らせやアップデートを共有し、チームの連携を強化します。</p>
+
+       {/* Updated Description Text */}
+        <p className="text-lg md:text-xl text-slate-500 max-w-2xl mb-12 font-medium leading-relaxed">
+          プロジェクト、タスク、レポート、そしてチームコラボレーション。<br className="hidden md:block" />
+          JMCのすべてを一本化する、高精度ワークスペースへようこそ。
+        </p>
+
+        {/* Actions with Person Icon 2 */}
+        <div className="relative flex flex-col sm:flex-row gap-4 items-center">
+          <Link href="/login" className="px-10 py-4 bg-indigo-600 text-white font-bold rounded-2xl shadow-xl hover:bg-indigo-700 transition-all active:scale-95 flex items-center justify-center gap-2">
+            ログイン <LayoutDashboard size={20} />
+          </Link>
+          <Link href="/signup" className="px-10 py-4 bg-white text-slate-900 font-bold rounded-2xl shadow-md border border-slate-200 hover:bg-slate-50 transition-all active:scale-95">
+            新規登録
+          </Link>
+
+          {/* Person 2: Down beside Login Button */}
+          <div className="absolute -left-40 bottom-[-60px] flex flex-col items-center animate-bounce duration-[3000ms]">
+            <div className="w-12 h-12 bg-emerald-100 rounded-full flex items-center justify-center border-2 border-white shadow-sm">
+              <User className="text-emerald-600" size={24} />
+            </div>
+            <Laptop size={16} className="text-slate-300 mt-1" />
+          </div>
         </div>
-      </div>
+      </main>
+
+      <style jsx global>{`
+        @keyframes fadeIn {
+          from { opacity: 0; transform: translateY(20px); }
+          to { opacity: 1; transform: translateY(0); }
+        }
+        .animate-landingFadeIn {
+          animation: fadeIn 0.8s ease-out forwards;
+        }
+        .animate-fadeInSlow {
+          animation: fadeIn 1.2s ease-out forwards;
+        }
+      `}</style>
     </div>
   );
 }

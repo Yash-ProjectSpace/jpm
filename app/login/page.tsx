@@ -81,7 +81,7 @@ export default function LoginPage() {
               // 4. Logic: value and onChange
               value={password}
               onChange={(e) => setPassword(e.target.value)}
-              className="w-full px-4 py-3 rounded-xl bg-slate-50 border border-slate-200 focus:bg-white focus:ring-2 focus:ring-indigo-500 outline-none transition-all mt-1"
+              className="w-full px-4 py-3 rounded-xl bg-slate-50 border border-slate-200 focus:bg-white focus:ring-2 focus:ring-indigo-500 outline-none transition-all mt-1 text-slate-900 font-medium"
             />
           </div>
 

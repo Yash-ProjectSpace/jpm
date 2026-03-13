@@ -10,9 +10,10 @@ const menuItems = [
   { name: 'プロジェクト', icon: FolderKanban, href: '/dashboard/projects' },
   { name: 'タスク管理', icon: CheckSquare, href: '/dashboard/tasks' },
   { name: 'メンバー', icon: Users, href: '/dashboard/members' },
- { name: 'レポート', icon: BarChart3, href:'/dashboar/reports'},
-  { name: '掲示板', icon: Bell, href: 'dashboard/noticeboard'},
-  // ... rest of the items
+  // FIXED: Added 'd' to dashboard
+  { name: 'レポート', icon: BarChart3, href: '/dashboard/reports'}, 
+  // FIXED: Added leading '/' to dashboard
+  { name: '掲示板', icon: Bell, href: '/dashboard/noticeboard'}, 
 ];
 
 export default function Sidebar() {
