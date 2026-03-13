@@ -3,7 +3,7 @@
 import React, { useState, useEffect, useMemo } from 'react';
 import { 
   CheckCircle2, Circle, Clock, AlertCircle, 
-  Filter, ListTodo, Plus, Search, Loader2, X, ChevronRight, Trash2, Calendar, ArrowLeft, Edit2, Check, ListChecks, BarChart3, Target, Activity, Zap, Archive, Inbox, MousePointer2
+  Filter, ListTodo, Plus, Search, Loader2, X, ChevronRight, Trash2, Calendar, ArrowLeft, Edit2, Check, ListChecks, BarChart3, Target, Activity, Zap, Archive, Inbox, MousePointer2, Sparkles
 } from 'lucide-react';
 
 // Professional Palette for Projects
@@ -23,6 +23,7 @@ export default function TasksPage() {
   const [selectedPriority, setSelectedPriority] = useState<string>(''); 
   const [viewMode, setViewMode] = useState<'active' | 'archived'>('active'); 
   const [loading, setLoading] = useState(true);
+  const [isAiLoading, setIsAiLoading] = useState(false); // New AI Loading State
   const [searchQuery, setSearchQuery] = useState(''); 
   
   const [editingTask, setEditingTask] = useState<any>(null);
@@ -48,6 +49,46 @@ export default function TasksPage() {
   const handleViewModeChange = (mode: 'active' | 'archived') => {
     setViewMode(mode);
     localStorage.setItem('task_view_mode', mode);
+  };
+
+  // --- AI GENERATION LOGIC ---
+  const generateAISubtasks = async () => {
+    if (!editingTask?.description || editingTask.description.length < 5) {
+      alert("AI解析のために、もう少し詳しい説明を入力してください。");
+      return;
+    }
+
+    setIsAiLoading(true);
+    try {
+      const res = await fetch('/api/ai/generate-subtasks', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ description: editingTask.description }),
+      });
+      
+      const data = await res.json();
+      if (!res.ok) throw new Error(data.error || "AI Generation failed");
+
+      if (data.subtasks && Array.isArray(data.subtasks)) {
+        const aiSteps = data.subtasks.map((s: string) => ({ text: s, completed: false }));
+        
+        // Update local modal state
+        setEditingTask((prev: any) => {
+          if (!prev) return null;
+          const updatedChecklist = [...(prev.checklist || []), ...aiSteps];
+          return { ...prev, checklist: updatedChecklist };
+        });
+
+        // Sync to database
+        const finalChecklist = [...(editingTask.checklist || []), ...aiSteps];
+        await syncTaskUpdate({ checklist: finalChecklist });
+      }
+    } catch (error) {
+      console.error("AI Error:", error);
+      alert("AI生成に失敗しました。APIキーまたはネットワークを確認してください。");
+    } finally {
+      setIsAiLoading(false);
+    }
   };
 
   // Analytics Logic
@@ -336,10 +377,29 @@ export default function TasksPage() {
             <div className="flex gap-10 flex-1 min-h-0">
               <div className="flex-[1.2] flex flex-col gap-4">
                 <div className="space-y-1"><label className="text-[9px] font-black text-slate-400 uppercase tracking-widest ml-1">タスク名</label><div className="flex items-center gap-3"><input className="flex-1 text-2xl font-black text-slate-900 bg-transparent border-b-2 border-transparent focus:border-indigo-500 outline-none py-1 transition-all" value={editingTask.title} onChange={(e) => { setEditingTask({...editingTask, title: e.target.value}); syncTaskUpdate({ title: e.target.value }); }} /><span className={`${getProjectTheme(editingTask.project?.name).bg} ${getProjectTheme(editingTask.project?.name).text} text-[10px] font-black px-3 py-1 rounded-lg border ${getProjectTheme(editingTask.project?.name).border} uppercase whitespace-nowrap`}>{editingTask.project?.name || '未割当'}</span></div></div>
-                <div className="flex-1 flex flex-col"><label className="text-[9px] font-black text-slate-400 uppercase tracking-widest ml-1">詳細説明</label><textarea className="w-full flex-1 text-slate-700 font-medium text-xs leading-relaxed bg-slate-50 p-5 rounded-[2rem] border border-slate-100 focus:bg-white focus:ring-2 focus:ring-indigo-500 outline-none resize-none mt-2 transition-all shadow-inner" value={editingTask.description || ''} onChange={(e) => { setEditingTask({...editingTask, description: e.target.value}); syncTaskUpdate({ description: e.target.value }); }} placeholder="説明を入力してください..." /></div>
+                <div className="flex-1 flex flex-col">
+                  <div className="flex justify-between items-center">
+                    <label className="text-[9px] font-black text-slate-400 uppercase tracking-widest ml-1">詳細説明</label>
+                    <div className="text-[9px] font-bold text-slate-300 italic">説明からAIでステップを生成できます</div>
+                  </div>
+                  <textarea className="w-full flex-1 text-slate-700 font-medium text-xs leading-relaxed bg-slate-50 p-5 rounded-[2rem] border border-slate-100 focus:bg-white focus:ring-2 focus:ring-indigo-500 outline-none resize-none mt-2 transition-all shadow-inner" value={editingTask.description || ''} onChange={(e) => { setEditingTask({...editingTask, description: e.target.value}); syncTaskUpdate({ description: e.target.value }); }} placeholder="説明を入力してください..." />
+                </div>
               </div>
               <div className="flex-1 flex flex-col min-h-0">
-                <div className="flex justify-between items-end mb-2"><label className="text-[9px] font-black text-slate-400 uppercase tracking-widest ml-1">サブタスク ( {subTaskProgress} % )</label><button onClick={toggleAllSubtasks} className="flex items-center gap-1 text-[10px] font-bold text-indigo-600 hover:text-indigo-800 transition-colors bg-indigo-50 px-2 py-1 rounded-lg border border-indigo-100"><ListChecks size={14} /> {editingTask.checklist?.every((i: any) => i.completed) ? 'すべて解除' : 'すべて完了'}</button></div>
+                <div className="flex justify-between items-end mb-2">
+                  <label className="text-[9px] font-black text-slate-400 uppercase tracking-widest ml-1">サブタスク ( {subTaskProgress} % )</label>
+                  <div className="flex gap-2">
+                     <button 
+                       onClick={generateAISubtasks}
+                       disabled={isAiLoading}
+                       className="flex items-center gap-1 text-[10px] font-bold text-violet-600 hover:text-violet-800 transition-colors bg-violet-50 px-2 py-1 rounded-lg border border-violet-100 disabled:opacity-50"
+                     >
+                       {isAiLoading ? <Loader2 size={12} className="animate-spin" /> : <Sparkles size={12} />}
+                       AI生成
+                     </button>
+                     <button onClick={toggleAllSubtasks} className="flex items-center gap-1 text-[10px] font-bold text-indigo-600 hover:text-indigo-800 transition-colors bg-indigo-50 px-2 py-1 rounded-lg border border-indigo-100"><ListChecks size={14} /> {editingTask.checklist?.every((i: any) => i.completed) ? 'すべて解除' : 'すべて完了'}</button>
+                  </div>
+                </div>
                 <div className="flex-1 overflow-y-auto pr-2 space-y-2 no-scrollbar">
                   {(editingTask.checklist || []).map((item: any, i: number) => (
                     <div key={i} className="group flex items-center gap-3 p-3 rounded-xl bg-slate-50 border border-slate-100 hover:bg-white hover:border-indigo-100 transition-all">
