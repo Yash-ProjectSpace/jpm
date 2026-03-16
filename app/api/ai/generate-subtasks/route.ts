@@ -5,7 +5,7 @@ export async function POST(req: Request) {
     const { description } = await req.json();
     
     // API Key (Already verified as working in your previous tests)
-    const API_KEY = "AIzaSyDlu7sVxpR8kZOojCvms-EDGQ3p6fa3f04"; 
+    const API_KEY = "AIzaSyDqEnoIek4WiZjHQCJoqgWoTPRxQ_2xygA"; 
 
     // UPDATED 2026 ENDPOINT: Using Gemini 3 Flash (Preview) or Gemini 2.5 Flash
     // We will use v1beta with gemini-2.5-flash for maximum stability

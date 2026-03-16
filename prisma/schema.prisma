@@ -7,42 +7,50 @@ datasource db {
   url      = env("DATABASE_URL")
 }
 
-// --- 1. User Model (Updated with Task relations) ---
-model User {
-  id        String    @id @default(cuid())
-  name      String?
-  email     String?   @unique
-  password  String?
-  createdAt DateTime  @default(now())
-  updatedAt DateTime  @updatedAt
-
-  projects  Project[]
-  messages  Message[]
-  
-  // NEW: Tasks assigned to this specific user
-  assignedTasks Task[]   @relation("TaskAssignee")
+// --- NEW: 1. Role Enum ---
+enum Role {
+  EMPLOYEE
+  MANAGER
 }
 
-// --- 2. Project Model (Updated with Task relation) ---
+// --- 2. User Model (Updated with Role) ---
+model User {
+  id        String   @id @default(cuid())
+  name      String?
+  email     String?  @unique
+  password  String?
+  role      Role     @default(EMPLOYEE)
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  projects      Project[]
+  messages      Message[]
+  assignedTasks Task[]    @relation("TaskAssignee")
+
+  // --- ADD THESE TWO LINES ---
+  reports  Report[] // Opposite relation for Report.author
+  comments Comment[] // Opposite relation for Comment.author
+}
+
+// --- 3. Project Model ---
 model Project {
   id          String    @id @default(cuid())
   name        String
   description String?
-  status      String    @default("進行中") 
+  status      String    @default("進行中")
   startDate   DateTime?
   endDate     DateTime?
   driveLink   String?
   createdAt   DateTime  @default(now())
   updatedAt   DateTime  @updatedAt
 
-  members  User[] 
-  messages Message[] 
-  
-  // NEW: A project can have many tasks
-  tasks    Task[]
+  members  User[]
+  messages Message[]
+
+  tasks Task[]
 }
 
-// --- 3. NEW: Task Model (The Core of your request) ---
+// --- 4. Task Model ---
 model Task {
   id          String    @id @default(cuid())
   title       String
@@ -50,24 +58,20 @@ model Task {
   status      String    @default("TODO") // TODO, IN_PROGRESS, DONE
   priority    String    @default("MEDIUM") // LOW, MEDIUM, HIGH
   dueDate     DateTime?
-  
-  // Multi-step Checklist stored as a JSON array 
-  // Structure: [{ "text": "Step 1", "completed": false }]
-  checklist   Json?     @default("[]")
 
-  createdAt   DateTime  @default(now())
-  updatedAt   DateTime  @updatedAt
+  checklist Json? @default("[]")
 
-  // Connects task to a specific Project
-  projectId   String
-  project     Project   @relation(fields: [projectId], references: [id], onDelete: Cascade)
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
 
-  // Connects task to a specific User (Assignee)
-  assigneeId  String?
-  assignee    User?     @relation("TaskAssignee", fields: [assigneeId], references: [id])
+  projectId String
+  project   Project @relation(fields: [projectId], references: [id], onDelete: Cascade)
+
+  assigneeId String?
+  assignee   User?   @relation("TaskAssignee", fields: [assigneeId], references: [id])
 }
 
-// --- 4. Chat Message Model ---
+// --- 5. Chat Message Model ---
 model Message {
   id        String   @id @default(cuid())
   text      String
@@ -78,4 +82,51 @@ model Message {
 
   userId String
   user   User   @relation(fields: [userId], references: [id], onDelete: Cascade)
+}
+
+// --- 6. Notice/Broadcast Models ---
+enum NoticeType {
+  URGENT
+  SUCCESS
+  INFO
+}
+
+// ADD THIS ENUM
+enum NoticeCategory {
+  COMPANY
+  PROJECTS
+  EVENTS
+}
+
+model Notice {
+  id        String         @id @default(cuid())
+  type      NoticeType     @default(INFO)
+  category  NoticeCategory @default(COMPANY) // ADD THIS LINE
+  title     String
+  createdAt DateTime       @default(now())
+}
+
+// --- Report & Feedback Models ---
+
+model Report {
+  id        String   @id @default(cuid())
+  content   String   @db.Text
+  createdAt DateTime @default(now())
+
+  // Relations
+  authorId  String
+  author    User      @relation(fields: [authorId], references: [id])
+  comments  Comment[]
+}
+
+model Comment {
+  id        String   @id @default(cuid())
+  text      String
+  createdAt DateTime @default(now())
+
+  // Relations
+  reportId  String
+  report    Report    @relation(fields: [reportId], references: [id], onDelete: Cascade)
+  authorId  String
+  author    User      @relation(fields: [authorId], references: [id])
 }
