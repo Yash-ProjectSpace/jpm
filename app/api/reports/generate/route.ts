@@ -20,18 +20,17 @@ export async function GET() {
     const endOfDay = new Date();
     endOfDay.setHours(23, 59, 59, 999);
 
-    // 2. Fetch tasks completed by THIS user TODAY
+    // ==========================================
+    // 2. TEMPORARY HACK: Fetch ANY task that is "DONE"
+    // ==========================================
     const completedTasks = await prisma.task.findMany({
       where: {
-        assigneeId: session.user.id,
-        status: "DONE",
-        updatedAt: {
-          gte: startOfDay,
-          lte: endOfDay,
-        },
+        status: "DONE", 
+        // We are temporarily ignoring assigneeId and updatedAt
       },
       select: { title: true },
     });
+    // ==========================================
 
     if (completedTasks.length === 0) {
       return NextResponse.json({ 
@@ -40,7 +39,6 @@ export async function GET() {
     }
 
     // 3. Prepare the prompt for Gemini
-    // --- FIXED: Added explicit type { title: string } to 't' ---
     const taskList = completedTasks.map((t: { title: string }) => `- ${t.title}`).join("\n");
     
     const prompt = `
@@ -59,7 +57,7 @@ export async function GET() {
     `;
 
     // 4. Call Gemini
-    const model = genAI.getGenerativeModel({ model: "gemini-1.5-flash" });
+    const model = genAI.getGenerativeModel({ model: "gemini-2.5-flash" });
     const result = await model.generateContent(prompt);
     const response = await result.response;
     const text = response.text();

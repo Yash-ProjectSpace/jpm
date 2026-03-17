@@ -2,11 +2,18 @@
 
 import React, { useState, useEffect } from 'react';
 import Link from 'next/link';
+import dynamic from 'next/dynamic'; // <-- NEW: Imported dynamic
 import { 
   Zap, LayoutDashboard, Database, BarChart3, 
   FolderKanban, Users, Search, Target, Laptop, 
   Monitor, ClipboardCheck, User
 } from 'lucide-react';
+
+// --- NEW: Import your landing page animation ---
+import landingAnimationData from '@/public/animations/landing-animation.json';
+
+// --- NEW: Dynamically load Lottie ---
+const Lottie = dynamic(() => import('lottie-react'), { ssr: false });
 
 export default function LandingPage() {
   const [isLoading, setIsLoading] = useState(true);
@@ -62,39 +69,38 @@ export default function LandingPage() {
         {/* Soft Ambient Shapes */}
         <div className="absolute top-[10%] left-[10%] w-64 h-64 bg-blue-50 rounded-full blur-3xl opacity-60" />
         <div className="absolute bottom-[10%] right-[10%] w-80 h-80 bg-indigo-50 rounded-full blur-3xl opacity-60" />
-
-        <div className="absolute left-1/2 -translate-x-1/2 top-6 flex flex-col items-center">
-          <div className="w-14 h-16 bg-indigo-500 rounded-full flex items-center justify-center shadow-xl shadow-indigo-100 text-white">
-            <ClipboardCheck size={30} />
-          </div>
-          <div className="w-0.5 h-16 bg-slate-100 mt-2"></div>
-        </div>
       </div>
 
       <main className="relative z-10 flex flex-col items-center justify-center min-h-screen px-6 text-center animate-landingFadeIn">
         
         {/* J P M Logo Area */}
-        <div className="mb-12 flex gap-1 items-center justify-center">
+        <div className="mb-8 flex gap-1 items-center justify-center mt-12">
           <div className="w-14 h-14 bg-indigo-600 rounded-2xl flex items-center justify-center shadow-lg"><span className="text-white text-2xl font-black italic">J</span></div>
           <div className="w-14 h-14 bg-indigo-500 rounded-2xl flex items-center justify-center shadow-lg"><span className="text-white text-2xl font-black italic">P</span></div>
           <div className="w-14 h-14 bg-indigo-400 rounded-2xl flex items-center justify-center shadow-lg"><span className="text-white text-2xl font-black italic">M</span></div>
         </div>
+
+        {/* --- NEW: Hero Lottie Animation --- */}
+        <div className="w-full max-w-[350px] md:max-w-[450px] mb-4">
+          <Lottie 
+            animationData={landingAnimationData} 
+            loop={true} 
+          />
+        </div>
         
-        {/* Headline Section with Person Icon 1 */}
+        {/* Headline Section */}
         <div className="relative inline-block mb-8">
           <h3 className="font-black text-slate-900 tracking-tighter leading-[1.1]">
-  {/* JMC size remains 5xl/7xl */}
-  <span className="text-5xl md:text-7xl">
-    JMCの
-  </span>
-  <br />
-  {/* App name size reduced to 4xl/6xl */}
-  <span className="text-indigo-600 text-4xl md:text-6xl">
-    プロジェクト管理アプリ
-  </span>
-</h3>
+            <span className="text-5xl md:text-7xl">
+              JMCの
+            </span>
+            <br />
+            <span className="text-indigo-600 text-4xl md:text-6xl">
+              プロジェクト管理アプリ
+            </span>
+          </h3>
           
-          {/* Person 1: Beside the Title (Hidden on small screens for clarity) */}
+          {/* Person 1: Beside the Title (Hidden on small screens) */}
           <div className="hidden lg:flex absolute -right-20 top-0 flex-col items-center animate-bounce duration-[3000ms]">
             <div className="w-12 h-12 bg-blue-100 rounded-full flex items-center justify-center border-2 border-white shadow-sm">
               <User className="text-blue-600" size={24} />
@@ -109,22 +115,14 @@ export default function LandingPage() {
           JMCのすべてを一本化する、高精度ワークスペースへようこそ。
         </p>
 
-        {/* Actions with Person Icon 2 */}
-        <div className="relative flex flex-col sm:flex-row gap-4 items-center">
+        {/* Actions */}
+        <div className="relative flex flex-col sm:flex-row gap-4 items-center mb-12">
           <Link href="/login" className="px-10 py-4 bg-indigo-600 text-white font-bold rounded-2xl shadow-xl hover:bg-indigo-700 transition-all active:scale-95 flex items-center justify-center gap-2">
             ログイン <LayoutDashboard size={20} />
           </Link>
           <Link href="/signup" className="px-10 py-4 bg-white text-slate-900 font-bold rounded-2xl shadow-md border border-slate-200 hover:bg-slate-50 transition-all active:scale-95">
             新規登録
           </Link>
-
-          {/* Person 2: Down beside Login Button */}
-          <div className="absolute -left-40 bottom-[-60px] flex flex-col items-center animate-bounce duration-[3000ms]">
-            <div className="w-12 h-12 bg-emerald-100 rounded-full flex items-center justify-center border-2 border-white shadow-sm">
-              <User className="text-emerald-600" size={24} />
-            </div>
-            <Laptop size={16} className="text-slate-300 mt-1" />
-          </div>
         </div>
       </main>
 

@@ -22,6 +22,7 @@ model User {
   role      Role     @default(EMPLOYEE)
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
+  department    String?   @default("DX")
 
   projects      Project[]
   messages      Message[]

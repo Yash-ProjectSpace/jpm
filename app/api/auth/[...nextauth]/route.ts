@@ -20,6 +20,12 @@ export const authOptions: NextAuthOptions = {
 
         if (!user || !user.password) return null;
 
+        // --- NEW: Block anyone who is NOT in the DX Department ---
+        if (user.department !== "DX") {
+          throw new Error("Access Denied: Only DX department employees can log in.");
+        }
+        // ---------------------------------------------------------
+
         const isPasswordCorrect = await bcrypt.compare(
           credentials.password,
           user.password
@@ -31,7 +37,8 @@ export const authOptions: NextAuthOptions = {
           id: String(user.id),
           name: user.name,
           email: user.email,
-          role: user.role, // <-- NEW: Grab the role from the database
+          role: user.role, 
+          department: user.department, // <-- NEW: Pass department to the session token
         };
       }
     })
@@ -42,7 +49,6 @@ export const authOptions: NextAuthOptions = {
   session: {
     strategy: "jwt",
   },
-  
   // --- NEW: The Callbacks to pass the role to the frontend ---
   callbacks: {
     async jwt({ token, user }) {

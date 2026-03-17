@@ -2,20 +2,28 @@
 
 import React, { useState } from 'react';
 import Link from 'next/link';
+import Image from 'next/image'; // <-- NEW: Imported Next.js Image component
 import { signIn } from 'next-auth/react';
 import { useRouter } from 'next/navigation';
+import { motion } from 'framer-motion';
+import dynamic from 'next/dynamic';
+import { Loader2, AlertCircle } from 'lucide-react';
+
+import loginAnimationData from '@/public/animations/login-animation.json';
+
+const Lottie = dynamic(() => import('lottie-react'), { ssr: false });
 
 export default function LoginPage() {
-  // 1. Logic: State to remember what the user types
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [loading, setLoading] = useState(false);
+  const [error, setError] = useState('');
   const router = useRouter();
 
-  // 2. Logic: The function that talks to NextAuth
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setLoading(true);
+    setError('');
 
     const result = await signIn('credentials', {
       redirect: false,
@@ -24,91 +32,119 @@ export default function LoginPage() {
     });
 
     if (result?.error) {
-      // Translated error message
-      alert("メールアドレスまたはパスワードが正しくありません。");
+      setError(result.error === "CredentialsSignin" 
+        ? "メールアドレスまたはパスワードが正しくありません。" 
+        : result.error);
     } else {
-      // If login is successful, go to the dashboard
       router.push('/dashboard'); 
     }
     setLoading(false);
   };
 
   return (
-    <div className="min-h-screen bg-slate-50 flex flex-col items-center justify-center p-6">
-      {/* Logo Section */}
-      <div className="mb-8 text-center">
-        <h1 className="text-4xl font-black text-indigo-600 tracking-tighter">JPM</h1>
-        <p className="text-slate-500 font-medium text-sm">JMC プロジェクト管理システム</p>
-      </div>
-
-      {/* Login Card */}
-      <div className="w-full max-w-md bg-white rounded-3xl shadow-xl shadow-slate-200/60 border border-slate-100 p-8 lg:p-10">
-        <div className="mb-8 text-left">
-          <h2 className="text-2xl font-bold text-slate-900">おかえりなさい</h2>
-          <p className="text-slate-500 text-sm mt-1">詳細を入力してサインインしてください。</p>
-        </div>
-
-        {/* 3. Logic: Added onSubmit={handleSubmit} */}
-        <form className="space-y-5" onSubmit={handleSubmit}>
-          <div>
-            <label className="block text-sm font-semibold text-slate-700 ml-1 text-left">
-              メールアドレス
-            </label>
-            <input 
-              type="email" 
-              required
-              placeholder="example@jmc.com"
-              // 4. Logic: value and onChange
-              value={email}
-              onChange={(e) => setEmail(e.target.value)}
-              className="w-full px-4 py-3 rounded-xl bg-slate-50 border border-slate-200 focus:bg-white focus:ring-2 focus:ring-indigo-500 outline-none transition-all mt-1"
+    <div className="min-h-screen bg-slate-50 flex items-center justify-center p-6">
+      <div className="max-w-5xl w-full grid grid-cols-1 md:grid-cols-2 gap-12 items-center">
+        
+        {/* LEFT SIDE: Lottie Animation & Logo */}
+        <motion.div 
+          initial={{ opacity: 0, x: -50 }}
+          animate={{ opacity: 1, x: 0 }}
+          transition={{ duration: 0.8, ease: "easeOut" }}
+          className="hidden md:flex flex-col items-center justify-center text-center"
+        >
+          <div className="w-full max-w-[400px]">
+            <Lottie 
+              animationData={loginAnimationData} 
+              loop={true}
             />
           </div>
           
-          <div>
-            <div className="flex justify-between items-center ml-1">
-              <label className="block text-sm font-semibold text-slate-700">
-                パスワード
-              </label>
-              <a href="#" className="text-xs font-bold text-indigo-600 hover:text-indigo-500">
-                パスワードをお忘れですか？
-              </a>
-            </div>
-            <input 
-              type="password" 
-              required
-              placeholder="••••••••"
-              // 4. Logic: value and onChange
-              value={password}
-              onChange={(e) => setPassword(e.target.value)}
-              className="w-full px-4 py-3 rounded-xl bg-slate-50 border border-slate-200 focus:bg-white focus:ring-2 focus:ring-indigo-500 outline-none transition-all mt-1 text-slate-900 font-medium"
+          {/* --- NEW: Official Company Logo --- */}
+          {/* Change "logo.png" to match whatever you named the file in your public folder! */}
+          <div className="mt-4 relative h-16 w-48"> 
+            <Image 
+              src="/logo.png" 
+              alt="JMC Company Logo"
+              fill
+              className="object-contain"
+              priority 
             />
           </div>
+          
+          <p className="text-slate-500 font-medium text-sm mt-2">JMC プロジェクト管理システム</p>
+        </motion.div>
 
-          <div className="flex items-center gap-2 ml-1">
-            <input type="checkbox" id="remember" className="rounded border-slate-300 text-indigo-600 focus:ring-indigo-500" />
-            <label htmlFor="remember" className="text-sm text-slate-600 font-medium cursor-pointer">
-              ログイン状態を保持する
-            </label>
+        {/* RIGHT SIDE: Form */}
+        <motion.div 
+          initial={{ opacity: 0, y: 30 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ duration: 0.6, delay: 0.2, ease: "easeOut" }}
+          className="w-full max-w-md mx-auto bg-white rounded-[2rem] shadow-xl shadow-slate-200/60 border border-slate-100 p-8 lg:p-10"
+        >
+          <div className="mb-8 text-left">
+            <h2 className="text-2xl font-black text-slate-900 tracking-tight">おかえりなさい</h2>
+            <p className="text-slate-500 font-medium text-sm mt-1">詳細を入力してサインインしてください。</p>
           </div>
 
-          <button 
-            type="submit"
-            disabled={loading}
-            className="w-full bg-slate-900 hover:bg-slate-800 text-white font-bold py-3 rounded-xl shadow-lg transition-all active:scale-[0.98] mt-2 disabled:opacity-50 disabled:cursor-not-allowed"
-          >
-            {loading ? "サインイン中..." : "サインイン"}
-          </button>
-        </form>
+          <form className="space-y-5" onSubmit={handleSubmit}>
+            {error && (
+              <motion.div 
+                initial={{ opacity: 0, scale: 0.95 }}
+                animate={{ opacity: 1, scale: 1 }}
+                className="bg-rose-50 border border-rose-100 text-rose-600 p-4 rounded-xl flex items-start gap-3 text-sm font-bold"
+              >
+                <AlertCircle size={18} className="shrink-0 mt-0.5" />
+                <p>{error}</p>
+              </motion.div>
+            )}
 
-        <div className="mt-10 pt-6 border-t border-slate-100 text-center">
-          <p className="text-slate-600 text-sm">
-            アカウントをお持ちでないですか？{' '}
-            <Link href="/signup" className="text-indigo-600 font-bold hover:underline">
-              新規登録
-            </Link>
-          </p>
-        </div>
+            <div>
+              <label className="block text-xs font-black uppercase tracking-widest text-slate-400 ml-1 mb-2">
+                メールアドレス
+              </label>
+              <input 
+                type="email" 
+                required
+                value={email}
+                onChange={(e) => setEmail(e.target.value)}
+                className="w-full px-4 py-3 h-12 rounded-xl bg-slate-50 border border-slate-200 focus:bg-white focus:ring-2 focus:ring-indigo-500 outline-none transition-all font-medium"
+              />
+            </div>
+            
+            <div>
+              <div className="flex justify-between items-center ml-1 mb-2">
+                <label className="block text-xs font-black uppercase tracking-widest text-slate-400">
+                  パスワード
+                </label>
+              </div>
+              <input 
+                type="password" 
+                required
+                value={password}
+                onChange={(e) => setPassword(e.target.value)}
+                className="w-full px-4 py-3 h-12 rounded-xl bg-slate-50 border border-slate-200 focus:bg-white focus:ring-2 focus:ring-indigo-500 outline-none transition-all font-medium"
+              />
+            </div>
+
+            <button 
+              type="submit"
+              disabled={loading}
+              className="w-full bg-slate-900 hover:bg-slate-800 text-white font-black py-4 rounded-xl shadow-lg transition-all active:scale-[0.98] mt-2 flex items-center justify-center gap-2"
+            >
+              {loading ? <Loader2 className="animate-spin" size={18} /> : "サインイン"}
+            </button>
+          </form>
+
+          <div className="mt-8 pt-6 border-t border-slate-100 text-center">
+            <p className="text-slate-500 font-medium text-sm">
+              アカウントをお持ちでないですか？{' '}
+              <Link href="/signup" className="text-indigo-600 font-black hover:underline">
+                新規登録
+              </Link>
+            </p>
+          </div>
+        </motion.div>
+
       </div>
     </div>
   );
