@@ -2,13 +2,15 @@
 
 import React, { useState } from 'react';
 import Link from 'next/link';
-import Image from 'next/image'; // <-- NEW: Imported Next.js Image component
 import { signIn } from 'next-auth/react';
+import Image from 'next/image';
 import { useRouter } from 'next/navigation';
 import { motion } from 'framer-motion';
 import dynamic from 'next/dynamic';
 import { Loader2, AlertCircle } from 'lucide-react';
 
+// --- 1. IMPORT THE JSON DIRECTLY ---
+// This treats the JSON as a local object, so no fetching is required!
 import loginAnimationData from '@/public/animations/login-animation.json';
 
 const Lottie = dynamic(() => import('lottie-react'), { ssr: false });
@@ -42,10 +44,19 @@ export default function LoginPage() {
   };
 
   return (
-    <div className="min-h-screen bg-slate-50 flex items-center justify-center p-6">
-      <div className="max-w-5xl w-full grid grid-cols-1 md:grid-cols-2 gap-12 items-center">
+    // CHANGED: Added 'relative overflow-hidden' to contain the background glows
+    <div className="min-h-screen bg-slate-50 flex items-center justify-center p-6 relative overflow-hidden">
+      
+      {/* --- NEW: Ambient Background Glows --- */}
+      {/* Top Left Indigo Glow */}
+      <div className="absolute top-[-10%] left-[-10%] w-[40vw] h-[40vw] max-w-[600px] max-h-[600px] bg-indigo-200/40 rounded-full blur-[100px] pointer-events-none" />
+      {/* Bottom Right Blue Glow */}
+      <div className="absolute bottom-[-10%] right-[-5%] w-[30vw] h-[30vw] max-w-[500px] max-h-[500px] bg-blue-200/40 rounded-full blur-[100px] pointer-events-none" />
+
+      {/* CHANGED: Added 'relative z-10' to ensure content stays above the glows */}
+      <div className="max-w-5xl w-full grid grid-cols-1 md:grid-cols-2 gap-12 items-center relative z-10">
         
-        {/* LEFT SIDE: Lottie Animation & Logo */}
+        {/* LEFT SIDE: Lottie Animation */}
         <motion.div 
           initial={{ opacity: 0, x: -50 }}
           animate={{ opacity: 1, x: 0 }}
@@ -53,25 +64,15 @@ export default function LoginPage() {
           className="hidden md:flex flex-col items-center justify-center text-center"
         >
           <div className="w-full max-w-[400px]">
+            {/* --- 2. USE THE IMPORTED DATA --- */}
             <Lottie 
               animationData={loginAnimationData} 
               loop={true}
             />
           </div>
           
-          {/* --- NEW: Official Company Logo --- */}
-          {/* Change "logo.png" to match whatever you named the file in your public folder! */}
-          <div className="mt-4 relative h-16 w-48"> 
-            <Image 
-              src="/logo.png" 
-              alt="JMC Company Logo"
-              fill
-              className="object-contain"
-              priority 
-            />
-          </div>
-          
-          <p className="text-slate-500 font-medium text-sm mt-2">JMC プロジェクト管理システム</p>
+          <h1 className="text-4xl font-black text-indigo-600 tracking-tighter mt-4">JPM</h1>
+          <p className="text-slate-500 font-medium text-sm mt-1">JMC プロジェクト管理システム</p>
         </motion.div>
 
         {/* RIGHT SIDE: Form */}
@@ -79,11 +80,12 @@ export default function LoginPage() {
           initial={{ opacity: 0, y: 30 }}
           animate={{ opacity: 1, y: 0 }}
           transition={{ duration: 0.6, delay: 0.2, ease: "easeOut" }}
-          className="w-full max-w-md mx-auto bg-white rounded-[2rem] shadow-xl shadow-slate-200/60 border border-slate-100 p-8 lg:p-10"
+          // CHANGED: Added 'bg-white/80 backdrop-blur-xl' to make the form glassy over the glows
+          className="w-full max-w-md mx-auto bg-white/80 backdrop-blur-xl rounded-[2rem] shadow-xl shadow-slate-200/60 border border-white p-8 lg:p-10"
         >
           <div className="mb-8 text-left">
             <h2 className="text-2xl font-black text-slate-900 tracking-tight">おかえりなさい</h2>
-            <p className="text-slate-500 font-medium text-sm mt-1">詳細を入力してサインインしてください。</p>
+            <p className="text-slate-500 font-medium text-sm mt-1">詳細を入力してログインしてください。</p>
           </div>
 
           <form className="space-y-5" onSubmit={handleSubmit}>
@@ -131,7 +133,7 @@ export default function LoginPage() {
               disabled={loading}
               className="w-full bg-slate-900 hover:bg-slate-800 text-white font-black py-4 rounded-xl shadow-lg transition-all active:scale-[0.98] mt-2 flex items-center justify-center gap-2"
             >
-              {loading ? <Loader2 className="animate-spin" size={18} /> : "サインイン"}
+              {loading ? <Loader2 className="animate-spin" size={18} /> : "ログイン"}
             </button>
           </form>
 
@@ -144,7 +146,6 @@ export default function LoginPage() {
             </p>
           </div>
         </motion.div>
-
       </div>
     </div>
   );
