@@ -21,7 +21,6 @@ export default function SignupPage() {
   const [confirmPassword, setConfirmPassword] = useState(''); 
   const [terms, setTerms] = useState(false); 
   
-  // --- NEW: Separate states for both eye icons ---
   const [showPassword, setShowPassword] = useState(false);
   const [showConfirmPassword, setShowConfirmPassword] = useState(false);
 
@@ -50,6 +49,7 @@ export default function SignupPage() {
     setLoading(true);
     setError('');
 
+    // Validation logic
     const newErrors = {
       name: name.trim() === '',
       email: email.trim() === '',
@@ -76,11 +76,35 @@ export default function SignupPage() {
       return;
     }
 
+    // --- REAL API CALL ADDED HERE ---
     try {
-      await new Promise(resolve => setTimeout(resolve, 1500));
+      const response = await fetch('/api/signup', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          name,
+          email,
+          password,
+          // Sending department as well to ensure it matches your DX requirement
+          department: department.toUpperCase() 
+        }),
+      });
+
+      const data = await response.json();
+
+      if (!response.ok) {
+        throw new Error(data.error || "登録中にエラーが発生しました。");
+      }
+
+      // Success: Redirect to login
+      alert("アカウントが作成されました！ログインしてください。");
       router.push('/login');
-    } catch (err) {
-      setError("登録中にエラーが発生しました。もう一度お試しください。");
+      
+    } catch (err: any) {
+      console.error("SIGNUP_CLIENT_ERROR:", err);
+      setError(err.message || "登録中にエラーが発生しました。もう一度お試しください。");
     } finally {
       setLoading(false);
     }
@@ -216,7 +240,6 @@ export default function SignupPage() {
               </select>
             </div>
             
-            {/* --- CHANGED: Removed the grid layout, now fields stack vertically natively --- */}
             <div>
               <label className={`block text-xs font-black uppercase tracking-widest ml-1 mb-1.5 ${(formErrors.password || formErrors.passwordMatch) ? 'text-rose-500' : 'text-slate-400'}`}>
                 パスワード
@@ -242,7 +265,6 @@ export default function SignupPage() {
               </div>
             </div>
 
-            {/* --- CHANGED: Now stacked below the main password field, full width, with eye icon --- */}
             <div>
               <label className={`block text-xs font-black uppercase tracking-widest ml-1 mb-1.5 ${(formErrors.confirmPassword || formErrors.passwordMatch) ? 'text-rose-500' : 'text-slate-400'}`}>
                 確認用

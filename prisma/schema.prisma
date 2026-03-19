@@ -7,30 +7,54 @@ datasource db {
   url      = env("DATABASE_URL")
 }
 
-// --- NEW: 1. Role Enum ---
+// --- 1. Enums ---
 enum Role {
   EMPLOYEE
   MANAGER
 }
 
-// --- 2. User Model (Updated with Role) ---
+enum NoticeType {
+  URGENT
+  SUCCESS
+  INFO
+}
+
+enum NoticeCategory {
+  COMPANY
+  PROJECTS
+  EVENTS
+}
+
+// NEW: Status for the Report/Feedback Loop
+enum ReportStatus {
+  PENDING
+  APPROVED
+  REVISION_REQUESTED
+}
+
+// --- 2. User Model ---
 model User {
-  id        String   @id @default(cuid())
-  name      String?
-  email     String?  @unique
-  password  String?
-  role      Role     @default(EMPLOYEE)
-  createdAt DateTime @default(now())
-  updatedAt DateTime @updatedAt
+  id            String    @id @default(cuid())
+  name          String?
+  email         String?   @unique
+  password      String?
+  role          Role      @default(EMPLOYEE)
+  createdAt     DateTime  @default(now())
+  updatedAt     DateTime  @updatedAt
   department    String?   @default("DX")
 
   projects      Project[]
-  messages      Message[]
-  assignedTasks Task[]    @relation("TaskAssignee")
+  
+  // By adding the ? and making these optional, your other pages will stop erroring
+  messages      Message[] @relation("UserMessages") 
+  sentMessages     Message[] @relation("SentMessages")
+  receivedMessages Message[] @relation("ReceivedMessages")
 
-  // --- ADD THESE TWO LINES ---
-  reports  Report[] // Opposite relation for Report.author
-  comments Comment[] // Opposite relation for Comment.author
+  assignedTasks Task[]    @relation("TaskAssignee")
+  reports       Report[] 
+  comments      Comment[] 
+  reactions     Reaction[] 
+  notices       Notice[]
 }
 
 // --- 3. Project Model ---
@@ -45,10 +69,9 @@ model Project {
   createdAt   DateTime  @default(now())
   updatedAt   DateTime  @updatedAt
 
-  members  User[]
-  messages Message[]
-
-  tasks Task[]
+  members     User[]
+  messages    Message[]
+  tasks       Task[]
 }
 
 // --- 4. Task Model ---
@@ -60,74 +83,109 @@ model Task {
   priority    String    @default("MEDIUM") // LOW, MEDIUM, HIGH
   dueDate     DateTime?
 
-  checklist Json? @default("[]")
+  checklist   Json?     @default("[]")
 
-  createdAt DateTime @default(now())
-  updatedAt DateTime @updatedAt
+  createdAt   DateTime  @default(now())
+  updatedAt   DateTime  @updatedAt
 
-  projectId String
-  project   Project @relation(fields: [projectId], references: [id], onDelete: Cascade)
+  projectId   String
+  project     Project   @relation(fields: [projectId], references: [id], onDelete: Cascade)
 
-  assigneeId String?
-  assignee   User?   @relation("TaskAssignee", fields: [assigneeId], references: [id])
+  assigneeId  String?
+  assignee    User?     @relation("TaskAssignee", fields: [assigneeId], references: [id])
+
+  reports     Report[]  // NEW: A task can have completion reports submitted for it
 }
 
-// --- 5. Chat Message Model ---
+// --- 5. Updated Chat Message Model ---
 model Message {
-  id        String   @id @default(cuid())
-  text      String
-  createdAt DateTime @default(now())
+  id          String   @id @default(cuid())
+  text        String   @db.Text
+  createdAt   DateTime @default(now())
+  isRead      Boolean  @default(false)
 
-  projectId String
-  project   Project @relation(fields: [projectId], references: [id], onDelete: Cascade)
+  // 1. For Project Chat (Your existing messages field in User)
+  projectId   String?  
+  project     Project? @relation(fields: [projectId], references: [id], onDelete: Cascade)
+  
+  // This connects to "messages Message[]" in your User model
+  authorId    String
+  author      User     @relation("UserMessages", fields: [authorId], references: [id], onDelete: Cascade)
 
-  userId String
-  user   User   @relation(fields: [userId], references: [id], onDelete: Cascade)
+  // 2. For Direct Messaging (The new private chat logic)
+  senderId      String   
+  sender        User     @relation("SentMessages", fields: [senderId], references: [id], onDelete: Cascade)
+
+  receiverId    String?  
+  receiver      User?    @relation("ReceivedMessages", fields: [receiverId], references: [id])
+
+  reactions   Reaction[]
+  
+  @@index([authorId])
+  @@index([senderId])
+  @@index([receiverId])
+  @@index([projectId])
 }
-
-// --- 6. Notice/Broadcast Models ---
-enum NoticeType {
-  URGENT
-  SUCCESS
-  INFO
-}
-
-// ADD THIS ENUM
-enum NoticeCategory {
-  COMPANY
-  PROJECTS
-  EVENTS
-}
-
-model Notice {
-  id        String         @id @default(cuid())
-  type      NoticeType     @default(INFO)
-  category  NoticeCategory @default(COMPANY) // ADD THIS LINE
-  title     String
-  createdAt DateTime       @default(now())
-}
-
-// --- Report & Feedback Models ---
-
+// --- 7. Report & Feedback Models ---
 model Report {
-  id        String   @id @default(cuid())
-  content   String   @db.Text
-  createdAt DateTime @default(now())
+  id        String       @id @default(cuid())
+  content   String       @db.Text
+  status    ReportStatus @default(PENDING)
+  createdAt DateTime     @default(now())
 
   // Relations
   authorId  String
-  author    User      @relation(fields: [authorId], references: [id])
+  author    User         @relation(fields: [authorId], references: [id])
+  
+  // Notice the '?' - this makes it optional so it works for Daily Reports!
+  taskId    String?      
+  task      Task?        @relation(fields: [taskId], references: [id], onDelete: Cascade)
+
   comments  Comment[]
 }
 
 model Comment {
-  id        String   @id @default(cuid())
+  id        String    @id @default(cuid())
   text      String
-  createdAt DateTime @default(now())
+  createdAt DateTime  @default(now())
 
   // Relations
   reportId  String
   report    Report    @relation(fields: [reportId], references: [id], onDelete: Cascade)
   authorId  String
   author    User      @relation(fields: [authorId], references: [id])
+
+  reactions Reaction[] // NEW: Emojis on manager/employee feedback
+}
+
+// --- 8. NEW: Reaction Model (For Emojis) ---
+model Reaction {
+  id        String   @id @default(cuid())
+  emoji     String   // Will store the actual emoji like "👍" or "🔥"
+  createdAt DateTime @default(now())
+
+  // Who reacted?
+  userId    String
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  // A reaction can belong to a Project Message OR a Report Comment
+  messageId String?
+  message   Message? @relation(fields: [messageId], references: [id], onDelete: Cascade)
+
+  commentId String?
+  comment   Comment? @relation(fields: [commentId], references: [id], onDelete: Cascade)
+}
+
+// Add this to the bottom of prisma/schema.prisma --- Notice/Broadcast Model ---
+
+model Notice {
+  id        String   @id @default(cuid())
+  title     String
+  content   String   @db.Text
+  category  String   
+  createdAt DateTime @default(now())
+
+  // Relation back to User
+  authorId  String
+  author    User     @relation(fields: [authorId], references: [id])
 }

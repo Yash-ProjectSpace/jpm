@@ -2,15 +2,14 @@
 
 import React, { useState } from 'react';
 import Link from 'next/link';
-import { signIn } from 'next-auth/react';
+// CHANGED: Imported getSession so we can check the role after login
+import { signIn, getSession } from 'next-auth/react';
 import Image from 'next/image';
 import { useRouter } from 'next/navigation';
 import { motion } from 'framer-motion';
 import dynamic from 'next/dynamic';
 import { Loader2, AlertCircle } from 'lucide-react';
 
-// --- 1. IMPORT THE JSON DIRECTLY ---
-// This treats the JSON as a local object, so no fetching is required!
 import loginAnimationData from '@/public/animations/login-animation.json';
 
 const Lottie = dynamic(() => import('lottie-react'), { ssr: false });
@@ -37,26 +36,34 @@ export default function LoginPage() {
       setError(result.error === "CredentialsSignin" 
         ? "メールアドレスまたはパスワードが正しくありません。" 
         : result.error);
+      setLoading(false);
     } else {
-      router.push('/dashboard'); 
+      // --- NEW: THE TRAFFIC COP LOGIC ---
+      // 1. Grab the fresh session data we just created
+      const session = await getSession();
+      
+      // 2. Read their ID badge (role)
+      const userRole = (session?.user as any)?.role;
+
+      // 3. Send them to the correct tower
+      if (userRole === 'MANAGER') {
+        router.push('/admin/dashboard');
+      } else {
+        router.push('/dashboard'); 
+      }
+      // Note: We don't set loading to false here because the redirect 
+      // is happening, and keeping the spinner going looks smoother!
     }
-    setLoading(false);
   };
 
   return (
-    // CHANGED: Added 'relative overflow-hidden' to contain the background glows
     <div className="min-h-screen bg-slate-50 flex items-center justify-center p-6 relative overflow-hidden">
       
-      {/* --- NEW: Ambient Background Glows --- */}
-      {/* Top Left Indigo Glow */}
       <div className="absolute top-[-10%] left-[-10%] w-[40vw] h-[40vw] max-w-[600px] max-h-[600px] bg-indigo-200/40 rounded-full blur-[100px] pointer-events-none" />
-      {/* Bottom Right Blue Glow */}
       <div className="absolute bottom-[-10%] right-[-5%] w-[30vw] h-[30vw] max-w-[500px] max-h-[500px] bg-blue-200/40 rounded-full blur-[100px] pointer-events-none" />
 
-      {/* CHANGED: Added 'relative z-10' to ensure content stays above the glows */}
       <div className="max-w-5xl w-full grid grid-cols-1 md:grid-cols-2 gap-12 items-center relative z-10">
         
-        {/* LEFT SIDE: Lottie Animation */}
         <motion.div 
           initial={{ opacity: 0, x: -50 }}
           animate={{ opacity: 1, x: 0 }}
@@ -64,7 +71,6 @@ export default function LoginPage() {
           className="hidden md:flex flex-col items-center justify-center text-center"
         >
           <div className="w-full max-w-[400px]">
-            {/* --- 2. USE THE IMPORTED DATA --- */}
             <Lottie 
               animationData={loginAnimationData} 
               loop={true}
@@ -75,12 +81,10 @@ export default function LoginPage() {
           <p className="text-slate-500 font-medium text-sm mt-1">JMC プロジェクト管理システム</p>
         </motion.div>
 
-        {/* RIGHT SIDE: Form */}
         <motion.div 
           initial={{ opacity: 0, y: 30 }}
           animate={{ opacity: 1, y: 0 }}
           transition={{ duration: 0.6, delay: 0.2, ease: "easeOut" }}
-          // CHANGED: Added 'bg-white/80 backdrop-blur-xl' to make the form glassy over the glows
           className="w-full max-w-md mx-auto bg-white/80 backdrop-blur-xl rounded-[2rem] shadow-xl shadow-slate-200/60 border border-white p-8 lg:p-10"
         >
           <div className="mb-8 text-left">

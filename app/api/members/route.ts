@@ -16,8 +16,9 @@ export async function POST(req: Request) {
     }
 
     // 2. Check for duplicate email
+    // Use type casting if red lines persist: (prisma.user as any).findUnique
     const existingUser = await prisma.user.findUnique({
-      where: { email }
+      where: { email: email as string }
     });
 
     if (existingUser) {
@@ -27,7 +28,7 @@ export async function POST(req: Request) {
       );
     }
 
-    // 3. Hash the password (Security First)
+    // 3. Hash the password
     const hashedPassword = await bcrypt.hash(password, 10);
 
     // 4. Create User in Database
@@ -36,7 +37,7 @@ export async function POST(req: Request) {
         name,
         email,
         password: hashedPassword,
-        role: role || 'EMPLOYEE', // Defaults to EMPLOYEE if not specified
+        role: role || 'EMPLOYEE',
       }
     });
 
@@ -48,18 +49,15 @@ export async function POST(req: Request) {
   } catch (error: any) {
     console.error("Member Creation Error:", error);
     return NextResponse.json(
-      { error: "サーバーエラーが発生しました。入力を確認してください。" }, 
+      { error: "サーバーエラーが発生しました。" }, 
       { status: 500 }
     );
   }
 }
 
-/**
- * Optional: GET request to fetch all members from DB
- * If you use this, you can remove the hardcoded teamMembers array from your page.tsx
- */
 export async function GET() {
   try {
+    // Explicitly fetching fields to satisfy the new schema relations
     const users = await prisma.user.findMany({
       select: {
         id: true,
@@ -67,11 +65,13 @@ export async function GET() {
         email: true,
         role: true,
         createdAt: true,
+        // We explicitly omit the message arrays here to keep the GET clean
       },
       orderBy: { createdAt: 'asc' }
     });
     return NextResponse.json(users);
   } catch (error) {
+    console.error("GET_MEMBERS_ERROR:", error);
     return NextResponse.json({ error: "Failed to fetch members" }, { status: 500 });
   }
 }

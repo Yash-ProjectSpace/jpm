@@ -1,7 +1,33 @@
 import { NextResponse } from 'next/server';
 import { prisma } from '@/lib/prisma';
+import { getServerSession } from 'next-auth';
+import { authOptions } from '@/lib/auth';
 
-// 1. POST: Create a new task with Checklist
+// ------------------------------------------------------------------
+// 0. GET: Fetch all tasks for the Kanban Board (NEW!)
+// ------------------------------------------------------------------
+export async function GET() {
+  try {
+    const session = await getServerSession(authOptions);
+    if (!session?.user?.email) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+
+    const tasks = await prisma.task.findMany({
+      orderBy: { createdAt: 'desc' },
+      include: {
+        assignee: { select: { name: true } },
+        project: { select: { name: true } }
+      }
+    });
+
+    return NextResponse.json(tasks);
+  } catch (error) {
+    return NextResponse.json({ error: "Failed to fetch tasks" }, { status: 500 });
+  }
+}
+
+// ------------------------------------------------------------------
+// 1. POST: Create a new task with Checklist (YOUR EXISTING CODE)
+// ------------------------------------------------------------------
 export async function POST(request: Request) {
   try {
     const body = await request.json();
@@ -17,11 +43,9 @@ export async function POST(request: Request) {
         checklist: checklist || [], 
         status: "TODO",
       },
-      // --- ADD THIS TO FETCH PROJECT NAME ---
       include: {
         project: true, 
       },
-      // --------------------------------------
     });
 
     return NextResponse.json(newTask, { status: 201 });
@@ -31,7 +55,9 @@ export async function POST(request: Request) {
   }
 }
 
-// 2. PUT: Update checklist items or task status
+// ------------------------------------------------------------------
+// 2. PUT: Update checklist items or task status (YOUR EXISTING CODE)
+// ------------------------------------------------------------------
 export async function PUT(request: Request) {
   try {
     const body = await request.json();
@@ -50,14 +76,11 @@ export async function PUT(request: Request) {
         title,
         description,
         priority,
-        // Ensure date is properly formatted if being updated
         dueDate: dueDate ? new Date(dueDate) : undefined, 
       },
-      // --- ADD THIS TO KEEP PROJECT NAME VISIBLE AFTER UPDATE ---
       include: {
         project: true,
       },
-      // ---------------------------------------------------------
     });
 
     return NextResponse.json(updatedTask);
@@ -67,7 +90,9 @@ export async function PUT(request: Request) {
   }
 }
 
-// 3. DELETE: Remove a task
+// ------------------------------------------------------------------
+// 3. DELETE: Remove a task (YOUR EXISTING CODE)
+// ------------------------------------------------------------------
 export async function DELETE(request: Request) {
   try {
     const { searchParams } = new URL(request.url);
