@@ -1,10 +1,10 @@
 'use client';
 
-import React, { useEffect, useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { useSession } from "next-auth/react";
 import { useRouter } from 'next/navigation';
 import dynamic from 'next/dynamic';
-import Link from 'next/link'; // Added Link import
+import Link from 'next/link'; 
 import { motion, AnimatePresence } from 'framer-motion';
 import { 
   Sparkles, Bell, BarChart3, Loader2, FolderKanban, 
@@ -15,7 +15,7 @@ import waveAnimationData from '@/public/animations/wave-animation.json';
 const Lottie = dynamic(() => import('lottie-react'), { ssr: false });
 
 export default function DashboardPage() {
-  const { data: session } = useSession();
+  const { data: session, status } = useSession();
   const router = useRouter();
   
   const [data, setData] = useState<any>(null);
@@ -31,6 +31,13 @@ export default function DashboardPage() {
   const [currentIdx, setCurrentIdx] = useState(0);
   const userName = session?.user?.name || "ゲスト";
 
+  // ROLE-BASED ROUTING: Bounces MANAGERS to the Admin Dashboard
+  useEffect(() => {
+    if (status === 'authenticated' && (session?.user as any)?.role === 'MANAGER') {
+      router.push('/admin/dashboard');
+    }
+  }, [session, status, router]);
+
   useEffect(() => {
     async function loadData() {
       try {
@@ -44,26 +51,25 @@ export default function DashboardPage() {
         console.error("Stats load failed");
       }
 
-      // STRICT LOGIC FIX: Pull database members, add 7 for the mock members
       try {
         const memberRes = await fetch('/api/members');
         if (memberRes.ok) {
           const membersData = await memberRes.json();
           const dbCount = Array.isArray(membersData) ? membersData.length : (membersData.members?.length || 0);
-          setMemberCount(7 + dbCount);
+          setMemberCount(dbCount);
         } else {
           const userRes = await fetch('/api/users');
           if (userRes.ok) {
             const usersData = await userRes.json();
             const dbCount = Array.isArray(usersData) ? usersData.length : 0;
-            setMemberCount(7 + dbCount);
+            setMemberCount(dbCount);
           } else {
-            setMemberCount(7);
+            setMemberCount(0);
           }
         }
       } catch (e) {
         console.error("Dynamic members load failed");
-        setMemberCount(7);
+        setMemberCount(0);
       } finally {
         setLoading(false);
       }
@@ -114,7 +120,12 @@ export default function DashboardPage() {
     return () => clearInterval(interval);
   }, [aiInsights, isPaused]);
 
-  if (loading) {
+  // FIX: Added `status === 'loading'` to prevent UI flashing before redirect!
+  if (
+    loading || 
+    status === 'loading' || 
+    (status === 'authenticated' && (session?.user as any)?.role === 'MANAGER')
+  ) {
     return (
       <div className="flex h-screen items-center justify-center bg-slate-50">
         <Loader2 className="animate-spin text-indigo-600" size={40} />
@@ -230,8 +241,8 @@ export default function DashboardPage() {
               </AnimatePresence>
             </div>
             <div className="absolute right-8 bottom-8 flex gap-2 z-20">
-               <button onClick={() => setCurrentInsightIdx(prev => (prev - 1 + aiInsights.length) % aiInsights.length)} className="p-2 bg-white border border-slate-200 rounded-xl text-slate-500 hover:text-indigo-600 transition-all active:scale-95"><ChevronLeft size={20}/></button>
-               <button onClick={() => setCurrentInsightIdx(prev => (prev + 1) % aiInsights.length)} className="p-2 bg-white border border-slate-200 rounded-xl text-slate-500 hover:text-indigo-600 transition-all active:scale-95"><ChevronRight size={20}/></button>
+                <button onClick={() => setCurrentInsightIdx(prev => (prev - 1 + aiInsights.length) % aiInsights.length)} className="p-2 bg-white border border-slate-200 rounded-xl text-slate-500 hover:text-indigo-600 transition-all active:scale-95"><ChevronLeft size={20}/></button>
+                <button onClick={() => setCurrentInsightIdx(prev => (prev + 1) % aiInsights.length)} className="p-2 bg-white border border-slate-200 rounded-xl text-slate-500 hover:text-indigo-600 transition-all active:scale-95"><ChevronRight size={20}/></button>
             </div>
           </div>
 
@@ -349,7 +360,6 @@ export default function DashboardPage() {
             <div className="flex-1 overflow-hidden">
               {notices.length > 0 ? (
                 <div className="space-y-3 h-full overflow-y-auto pr-2 no-scrollbar">
-                  {/* MAGIC HAPPENS HERE: slice(0, 3) */}
                   {notices.slice(0, 3).map((notice: any) => {
                     const style = getNoticeStyle(notice.category || notice.type);
                     return (
@@ -366,7 +376,6 @@ export default function DashboardPage() {
                               {notice.category || notice.type}
                             </span>
                           </div>
-                          {/* DATE FORMAT FIXED */}
                           <span className="text-[9px] text-slate-500 font-bold">
                             {notice.createdAt ? new Date(notice.createdAt).toLocaleDateString('ja-JP', { month: 'short', day: 'numeric' }) : notice.date}
                           </span>
@@ -389,7 +398,6 @@ export default function DashboardPage() {
               )}
             </div>
 
-            {/* BUTTON CHANGED TO LINK */}
             <Link 
               href="/dashboard/noticeboard"
               className="mt-4 w-full py-3 rounded-2xl bg-slate-50 text-slate-600 text-[10px] font-black uppercase tracking-widest hover:bg-slate-200 transition-all active:scale-95 shrink-0 block text-center"

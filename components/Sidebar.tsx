@@ -27,14 +27,15 @@ export default function Sidebar() {
       
       {/* --- PRO BRANDING --- */}
       <div className="h-16 flex items-center px-5 mt-2">
-        <div className="flex items-center gap-3 w-full p-2 rounded-lg hover:bg-slate-50 transition-colors cursor-pointer">
+        {/* Changed this div to a Link pointing to /dashboard */}
+        <Link href="/dashboard" className="flex items-center gap-3 w-full p-2 rounded-lg hover:bg-slate-50 transition-colors cursor-pointer">
           <div className="w-8 h-8 bg-slate-900 rounded-lg flex items-center justify-center shadow-sm">
             <span className="text-white font-bold text-xs font-mono">JPM</span>
           </div>
           <div className="flex-1">
             <h1 className="text-sm font-bold text-slate-900 leading-none">JMCワークスペース</h1>
           </div>
-        </div>
+        </Link>
       </div>
       
       {/* --- MAIN MENU --- */}

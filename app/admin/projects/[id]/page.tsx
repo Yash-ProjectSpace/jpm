@@ -40,7 +40,6 @@ export default async function AdminProjectDetailPage({ params }: { params: Promi
       <div className="p-8 max-w-[1600px] mx-auto w-full min-h-screen flex items-center justify-center">
         <div className="text-center">
           <h2 className="text-2xl font-black text-slate-800">プロジェクトが見つかりませんでした</h2>
-          <p className="text-slate-500 mt-2">Project not found.</p>
           <Link href="/admin/projects" className="text-indigo-600 font-bold mt-4 inline-block hover:underline">
             ← ダッシュボードに戻る
           </Link>
@@ -55,7 +54,7 @@ export default async function AdminProjectDetailPage({ params }: { params: Promi
       {/* Back Button */}
       <Link href="/admin/projects" className="inline-flex items-center gap-2 text-slate-400 hover:text-indigo-600 font-bold text-sm mb-6 transition-colors">
         <ArrowLeft size={16} />
-        戻る (Back)
+        戻る 
       </Link>
 
       {/* Header */}
@@ -89,7 +88,7 @@ export default async function AdminProjectDetailPage({ params }: { params: Promi
           <div className="bg-white p-8 rounded-[2rem] border border-slate-200 shadow-sm">
             <h3 className="font-black text-slate-900 mb-4 uppercase tracking-widest text-xs flex items-center gap-2">
               <LayoutList size={16} className="text-indigo-500" />
-              プロジェクト概要 (Description)
+              プロジェクト概要 
             </h3>
             <p className="text-slate-600 text-sm leading-relaxed">
               {project.description || "説明がありません (No description provided)."}
@@ -100,7 +99,7 @@ export default async function AdminProjectDetailPage({ params }: { params: Promi
           <div className="bg-white p-8 rounded-[2rem] border border-slate-200 shadow-sm">
             <h3 className="font-black text-slate-900 mb-6 uppercase tracking-widest text-xs flex items-center gap-2">
               <Users size={16} className="text-indigo-500" />
-              アサインされたメンバー (Assigned Members)
+              アサインされたメンバー 
             </h3>
             
             {project.members.length === 0 ? (
@@ -128,7 +127,7 @@ export default async function AdminProjectDetailPage({ params }: { params: Promi
         <div className="xl:col-span-1">
           <div className="bg-white p-6 rounded-[2.5rem] border border-slate-200 shadow-xl shadow-slate-200/50 sticky top-8">
             <h3 className="font-black text-slate-900 mb-4 uppercase tracking-widest text-xs flex items-center gap-2 px-2">
-              💬 プロジェクトチャット (Project Chat)
+              💬 プロジェクトチャット 
             </h3>
             
             {/* HERE IS OUR COMPONENT */}

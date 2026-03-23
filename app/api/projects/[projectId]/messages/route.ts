@@ -8,17 +8,26 @@ export async function GET(
   { params }: { params: { projectId: string } }
 ) {
   try {
+    // 1. ADDED: Security check to prevent unauthorized access
+    const session = await getServerSession(authOptions);
+    if (!session?.user) {
+      return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+    }
+
     const messages = await prisma.message.findMany({
       where: { projectId: params.projectId },
       include: {
-        // CHANGED: 'user' is now 'author' in the new schema
         author: { select: { id: true, name: true, role: true } },
         reactions: { include: { user: { select: { name: true } } } },
       },
       orderBy: { createdAt: 'asc' }
     });
 
-    return NextResponse.json(messages);
+    // 2. ADDED: Cache-Control so the chat updates instantly without refreshing!
+    return NextResponse.json(messages, {
+      status: 200,
+      headers: { 'Cache-Control': 'no-store, max-age=0' },
+    });
   } catch (error) {
     console.error("MESSAGES_GET_ERROR:", error);
     return NextResponse.json({ error: "Failed to fetch messages" }, { status: 500 });
@@ -45,16 +54,14 @@ export async function POST(
       return NextResponse.json({ error: "Message cannot be empty" }, { status: 400 });
     }
 
-const newMessage = await prisma.message.create({
+    const newMessage = await prisma.message.create({
       data: {
-        text,
+        text: text.trim(),
         projectId: params.projectId,
-        // These are the two fields your new schema uses to identify the sender
-        authorId: currentUser.id,
-        senderId: currentUser.id, 
+        // 3. CHANGED: Only authorId is needed. senderId is reserved for Private DMs!
+        authorId: currentUser.id, 
       },
       include: {
-        // Make sure this says 'author' to match the schema
         author: { select: { id: true, name: true, role: true } },
         reactions: true,
       }

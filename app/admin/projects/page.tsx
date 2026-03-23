@@ -36,7 +36,6 @@ export default async function AdminProjectsListPage() {
           </div>
           <div>
             <h1 className="text-3xl font-black text-slate-900 tracking-tight">全プロジェクト</h1>
-            <p className="text-slate-500 text-[10px] font-black uppercase tracking-[0.3em] mt-1">Master Project List</p>
           </div>
         </div>
       </header>
