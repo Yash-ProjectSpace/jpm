@@ -17,7 +17,7 @@ type Message = {
   id: string;
   text: string;
   createdAt: string;
-  user: { id: string; name: string | null; role: string };
+  author: { id: string; name: string | null; role: string }; // <-- CHANGED from 'user' to 'author'
   reactions: Reaction[];
 };
 
@@ -120,15 +120,16 @@ export default function ProjectChat({ projectId, currentUserId }: { projectId: s
             まだメッセージはありません。会話を始めましょう！ (No messages yet)
           </div>
         ) : (
-          messages.map((msg) => {
-            const isMe = msg.user.id === currentUserId;
+            messages.map((msg) => {
+            // CHANGED: 'user' is now 'author', and added '?' for safety!
+            const isMe = msg.author?.id === currentUserId;
 
             return (
               <div key={msg.id} className={`flex flex-col ${isMe ? 'items-end' : 'items-start'}`}>
                 {/* Name & Role Tag */}
                 <div className="flex items-center gap-2 mb-1 px-1">
-                  <span className="text-xs font-bold text-slate-500">{msg.user.name || 'Unknown'}</span>
-                  {msg.user.role === 'MANAGER' && (
+                  <span className="text-xs font-bold text-slate-500">{msg.author?.name}</span>
+                  {msg.author.role === 'MANAGER' && (
                     <span className="text-[9px] bg-indigo-100 text-indigo-700 px-1.5 py-0.5 rounded font-black tracking-wider">ADMIN</span>
                   )}
                 </div>

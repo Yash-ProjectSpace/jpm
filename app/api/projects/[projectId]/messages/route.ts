@@ -5,17 +5,19 @@ import { authOptions } from '@/lib/auth';
 
 export async function GET(
   request: Request, 
-  { params }: { params: { projectId: string } }
+  { params }: { params: Promise<{ projectId: string }> } // Type fixed to Promise
 ) {
   try {
-    // 1. ADDED: Security check to prevent unauthorized access
+    // 1. Unwrap params
+    const { projectId } = await params;
+
     const session = await getServerSession(authOptions);
     if (!session?.user) {
       return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
     }
 
     const messages = await prisma.message.findMany({
-      where: { projectId: params.projectId },
+      where: { projectId: projectId }, 
       include: {
         author: { select: { id: true, name: true, role: true } },
         reactions: { include: { user: { select: { name: true } } } },
@@ -23,7 +25,6 @@ export async function GET(
       orderBy: { createdAt: 'asc' }
     });
 
-    // 2. ADDED: Cache-Control so the chat updates instantly without refreshing!
     return NextResponse.json(messages, {
       status: 200,
       headers: { 'Cache-Control': 'no-store, max-age=0' },
@@ -36,9 +37,12 @@ export async function GET(
 
 export async function POST(
   request: Request, 
-  { params }: { params: { projectId: string } }
+  { params }: { params: Promise<{ projectId: string }> } // UPDATED: Changed to Promise
 ) {
   try {
+    // 1. Unwrap params
+    const { projectId } = await params;
+
     const session = await getServerSession(authOptions);
     if (!session?.user?.email) {
       return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
@@ -57,8 +61,7 @@ export async function POST(
     const newMessage = await prisma.message.create({
       data: {
         text: text.trim(),
-        projectId: params.projectId,
-        // 3. CHANGED: Only authorId is needed. senderId is reserved for Private DMs!
+        projectId: projectId, // Use the unwrapped variable
         authorId: currentUser.id, 
       },
       include: {

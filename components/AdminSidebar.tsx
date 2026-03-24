@@ -19,7 +19,6 @@ const adminNavItems = [
   { name: 'ダッシュボード', href: '/admin/dashboard', icon: LayoutDashboard },
   { name: '全プロジェクト', href: '/admin/projects', icon: FolderKanban },
   // SPLIT: We now have Daily Reports and Task Approvals as separate items
-  { name: 'タスク承認', href: '/admin/approvals', icon: CheckSquare },
 　{ name: '日報確認', href: '/admin/daily-reports', icon: ClipboardCheck },
   { name: 'メンバー管理', href: '/admin/members', icon: Users },
   { name: 'お知らせ配信', href: '/admin/notices', icon: Bell },

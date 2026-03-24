@@ -3,7 +3,7 @@ import { getServerSession } from 'next-auth';
 import { authOptions } from '@/lib/auth';
 import { prisma } from '@/lib/prisma';
 import { redirect } from 'next/navigation';
-import { ClipboardCheck, MessageCircle, Calendar } from 'lucide-react';
+import { ClipboardCheck, Calendar } from 'lucide-react';
 import ReportReviewCard from '@/components/ReportReviewCard';
 
 export default async function AdminDailyReportsPage() {
@@ -18,32 +18,29 @@ export default async function AdminDailyReportsPage() {
     redirect('/dashboard');
   }
 
-  // FETCH: Only reports where taskId is NULL (General Daily Reports)
+  // FETCH: All daily reports (where taskId is null)
   const dailyReports = await prisma.report.findMany({
     where: { taskId: null },
     include: {
-      author: { select: { name: true, department: true } },
-      task: { select: { title: true } }, // Should be null, but good for safety
+      author: { select: { id: true, name: true, department: true } },
       comments: {
-        include: { author: { select: { name: true, role: true } } }
+        include: { author: { select: { name: true, role: true } } },
+        orderBy: { createdAt: 'asc' }
       }
     },
-    orderBy: { createdAt: 'desc' } // Newest reports at the top
+    orderBy: { createdAt: 'desc' }
   });
 
   return (
-    <div className="p-8 max-w-[1200px] mx-auto w-full min-h-screen">
-      
+    <div className="p-8 max-w-[1200px] mx-auto w-full min-h-screen text-slate-900">
       <header className="mb-10 mt-4 flex justify-between items-end">
-        <div>
-          <div className="flex items-center gap-3">
-            <div className="p-2 bg-indigo-600 rounded-xl text-white shadow-lg shadow-indigo-600/20">
-              <ClipboardCheck size={28} />
-            </div>
-            <div>
-              <h1 className="text-3xl font-black text-slate-900 tracking-tight">日報確認</h1>
-              <p className="text-slate-500 text-[10px] font-black uppercase tracking-[0.3em] mt-1">Team Daily Feed</p>
-            </div>
+        <div className="flex items-center gap-3">
+          <div className="p-2 bg-indigo-600 rounded-xl text-white shadow-lg shadow-indigo-600/20">
+            <ClipboardCheck size={28} />
+          </div>
+          <div>
+            <h1 className="text-3xl font-black tracking-tight">日報確認</h1>
+            <p className="text-slate-500 text-[10px] font-black uppercase tracking-[0.3em] mt-1">Team Daily Feed</p>
           </div>
         </div>
         <div className="text-right hidden md:block">
@@ -61,12 +58,9 @@ export default async function AdminDailyReportsPage() {
           <p className="text-slate-500 text-sm mt-2">No daily reports submitted yet.</p>
         </div>
       ) : (
-        <div className="space-y-8">
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
           {dailyReports.map(report => (
-            <div key={report.id} className="relative">
-              {/* We reuse the Review Card but it will handle taskId: null perfectly now */}
-              <ReportReviewCard report={report} />
-            </div>
+            <ReportReviewCard key={report.id} report={report} />
           ))}
         </div>
       )}

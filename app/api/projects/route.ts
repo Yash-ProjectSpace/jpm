@@ -4,10 +4,10 @@ import { getServerSession } from 'next-auth';
 import { authOptions } from '@/lib/auth';
 
 export const dynamic = 'force-dynamic';
+
 // GET: Fetch projects (Master Key for Managers, Filtered for Users)
 export async function GET() {
   try {
-    // 1. Get the logged-in user's session
     const session = await getServerSession(authOptions);
     if (!session?.user) {
       return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
@@ -15,24 +15,22 @@ export async function GET() {
     
     const user = session.user as any;
 
-    // 2. THE MASTER KEY: Managers see everything ({}), Users see only their own projects
+    // THE MASTER KEY: Managers see everything, Users see only their own projects
     const whereClause = user.role === 'MANAGER' 
       ? {} 
       : { members: { some: { id: user.id } } };
 
-    // 3. Fetch projects with the role-based filter applied
     const projects = await prisma.project.findMany({
       where: whereClause,
       orderBy: { createdAt: 'desc' },
       include: {
         members: {
-          select: { id: true, name: true, role: true } // Removed avatar to avoid Prisma errors
+          select: { id: true, name: true, role: true } 
         },
-        tasks: true
+        tasks: true // Required for the Donut Chart!
       }
     });
     
-    // 4. Return the data with headers that explicitly tell Next.js NOT to cache this!
     return NextResponse.json(projects, {
       status: 200,
       headers: {
@@ -48,7 +46,6 @@ export async function GET() {
 // POST: Create a brand new project AND assign the creator
 export async function POST(request: Request) {
   try {
-    // 1. Get the logged-in user's session
     const session = await getServerSession(authOptions);
     if (!session?.user) {
       return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
@@ -56,14 +53,24 @@ export async function POST(request: Request) {
     
     const userId = (session.user as any).id;
     const body = await request.json();
-    const { name, description, status, startDate, endDate, driveLink } = body;
+    const { name, description, status, startDate, endDate, driveLink, memberIds } = body;
 
-    // Basic validation
     if (!name) {
       return NextResponse.json({ error: 'Project name is required' }, { status: 400 });
     }
 
-    // 2. Create the project and connect the creator
+    // Always keep the creator in the project
+    const membersToConnect = [{ id: userId }];
+    
+    // Add assigned members, preventing duplication of the creator
+    if (memberIds && Array.isArray(memberIds)) {
+      memberIds.forEach((id: string) => {
+        if (id !== userId) {
+          membersToConnect.push({ id });
+        }
+      });
+    }
+
     const newProject = await prisma.project.create({
       data: {
         name,
@@ -73,13 +80,14 @@ export async function POST(request: Request) {
         endDate: endDate ? new Date(endDate) : null,
         driveLink,
         members: {
-          connect: { id: userId } // Automatically add the creator as a team member
+          connect: membersToConnect 
         }
       },
       include: {
         members: {
           select: { id: true, name: true, role: true }
-        }
+        },
+        tasks: true // Required for the Donut Chart!
       }
     });
 
@@ -93,7 +101,6 @@ export async function POST(request: Request) {
 // DELETE: Remove a project
 export async function DELETE(request: Request) {
   try {
-    // Basic security check for delete as well
     const session = await getServerSession(authOptions);
     if (!session?.user) {
       return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
@@ -116,38 +123,48 @@ export async function DELETE(request: Request) {
     return NextResponse.json({ error: 'Failed to delete project' }, { status: 500 });
   }
 }
+
 // PUT: Update an existing project
 export async function PUT(request: Request) {
   try {
-    // 1. Security check
     const session = await getServerSession(authOptions);
     if (!session?.user) {
       return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
     }
 
-    // 2. Extract the updated data from the request body
     const body = await request.json();
-    const { id, name, description, status, startDate, endDate, driveLink } = body;
+    // FIXED: Now we are properly extracting memberIds during an edit!
+    const { id, name, description, status, startDate, endDate, driveLink, memberIds } = body;
 
     if (!id) {
       return NextResponse.json({ error: 'Project ID is required for updating' }, { status: 400 });
     }
 
-    // 3. Update the project in the database
+    // Prepare update data
+    const updateData: any = {
+      name,
+      description,
+      status,
+      startDate: startDate ? new Date(startDate) : null,
+      endDate: endDate ? new Date(endDate) : null,
+      driveLink,
+    };
+
+    // FIXED: If memberIds are provided, overwrite the current members list
+    if (memberIds && Array.isArray(memberIds)) {
+      updateData.members = {
+        set: memberIds.map((memberId: string) => ({ id: memberId }))
+      };
+    }
+
     const updatedProject = await prisma.project.update({
       where: { id: id },
-      data: {
-        name,
-        description,
-        status,
-        startDate: startDate ? new Date(startDate) : null,
-        endDate: endDate ? new Date(endDate) : null,
-        driveLink,
-      },
+      data: updateData,
       include: {
         members: {
           select: { id: true, name: true, role: true }
-        }
+        },
+        tasks: true // FIXED: Added tasks here so the Donut chart doesn't crash after editing!
       }
     });
 

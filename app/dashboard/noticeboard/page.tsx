@@ -3,8 +3,8 @@
 import React, { useState, useEffect } from 'react';
 import { 
   Megaphone, Briefcase, Calendar, Plus, 
-  ChevronRight, AlertTriangle, PartyPopper, Info,
-  X, Loader2, Building2, Rocket, Trash2
+  ChevronRight, PartyPopper, 
+  X, Loader2, Building2, Rocket, Trash2, User
 } from 'lucide-react';
 import { useSession } from "next-auth/react";
 
@@ -27,8 +27,11 @@ export default function NoticePage() {
   
   // States for Modals
   const [showForm, setShowForm] = useState(false);
-  const [selectedNotice, setSelectedNotice] = useState<Notice | null>(null); // For reading full notice
+  const [selectedNotice, setSelectedNotice] = useState<Notice | null>(null); 
   
+  // Unread Tracking State
+  const [readNoticeIds, setReadNoticeIds] = useState<Set<string>>(new Set());
+
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [newNotice, setNewNotice] = useState({
     title: '',
@@ -37,6 +40,14 @@ export default function NoticePage() {
   });
 
   const isManager = session?.user?.role === 'MANAGER';
+
+  // Load Read History from LocalStorage on mount
+  useEffect(() => {
+    const storedReads = localStorage.getItem('read_notices');
+    if (storedReads) {
+      setReadNoticeIds(new Set(JSON.parse(storedReads)));
+    }
+  }, []);
 
   const fetchNotices = async () => {
     setIsLoading(true);
@@ -57,6 +68,18 @@ export default function NoticePage() {
   useEffect(() => {
     fetchNotices();
   }, []);
+
+  // Handle clicking a notice to read it
+  const handleReadNotice = (notice: Notice) => {
+    setSelectedNotice(notice);
+    
+    // If it's not already read, mark it as read
+    if (!readNoticeIds.has(notice.id)) {
+      const updatedReads = new Set(readNoticeIds).add(notice.id);
+      setReadNoticeIds(updatedReads);
+      localStorage.setItem('read_notices', JSON.stringify(Array.from(updatedReads)));
+    }
+  };
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -88,7 +111,7 @@ export default function NoticePage() {
         method: 'DELETE',
       });
       if (res.ok) {
-        setSelectedNotice(null); // Close modal if open
+        setSelectedNotice(null); 
         fetchNotices();
       }
     } catch (err) {
@@ -106,8 +129,13 @@ export default function NoticePage() {
     }
   };
 
+  // Helper to get unread count for a specific category
+  const getUnreadCount = (category: NoticeCategory) => {
+    return notices.filter(n => n.category === category && !readNoticeIds.has(n.id)).length;
+  };
+
   return (
-    <div className="p-8 bg-slate-50 min-h-screen relative">
+    <div className="p-8 bg-slate-50 min-h-screen relative text-slate-900">
       {/* HEADER */}
       <div className="flex justify-between items-end mb-10">
         <div>
@@ -124,46 +152,60 @@ export default function NoticePage() {
         )}
       </div>
 
-      {/* TABS */}
+      {/* TABS WITH BLACK TEXT AND SIMPLE NOTIFICATION COUNT */}
       <div className="flex gap-4 mb-8">
         {[
           { id: 'COMPANY', label: '企業情報', icon: <Megaphone size={16} /> },
           { id: 'PROJECT', label: 'プロジェクト', icon: <Briefcase size={16} /> },
           { id: 'EVENT', label: 'イベント', icon: <Calendar size={16} /> },
-        ].map((tab) => (
-          <button
-            key={tab.id}
-            onClick={() => setActiveTab(tab.id as NoticeCategory)}
-            className={`flex items-center gap-2 px-6 py-3 rounded-2xl font-black text-xs uppercase tracking-widest transition-all
-              ${activeTab === tab.id 
-                ? 'bg-white text-indigo-600 shadow-sm border border-slate-100' 
-                : 'text-slate-400 hover:text-slate-600'}`}
-          >
-            {tab.icon}
-            {tab.label}
-          </button>
-        ))}
+        ].map((tab) => {
+          const unreadCount = getUnreadCount(tab.id as NoticeCategory);
+          return (
+            <button
+              key={tab.id}
+              onClick={() => setActiveTab(tab.id as NoticeCategory)}
+              className={`relative flex items-center gap-2 px-6 py-3 rounded-2xl font-black text-xs uppercase tracking-widest transition-all
+                ${activeTab === tab.id 
+                  ? 'bg-white text-black shadow-md border-2 border-black' 
+                  : 'bg-white text-black border border-slate-200 hover:bg-slate-100 shadow-sm'}`}
+            >
+              {tab.icon}
+              <span>
+                {tab.label} {unreadCount > 0 ? `(${unreadCount})` : ''}
+              </span>
+            </button>
+          )
+        })}
       </div>
 
       {/* NEW GRID LAYOUT */}
       {isLoading ? (
         <div className="flex justify-center p-20"><Loader2 className="animate-spin text-slate-300" size={32} /></div>
       ) : filteredNotices.length === 0 ? (
-        <div className="bg-white rounded-[2.5rem] p-20 border border-dashed border-slate-200 text-center">
+        <div className="bg-white rounded-3xl p-20 border border-dashed border-slate-200 text-center">
           <p className="text-slate-400 font-bold text-sm">現在、表示できる通知はありません。</p>
         </div>
       ) : (
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
           {filteredNotices.map((notice) => {
             const style = getCategoryStyle(notice.category);
+            const isUnread = !readNoticeIds.has(notice.id);
+
             return (
               <div 
                 key={notice.id}
-                onClick={() => setSelectedNotice(notice)}
-                className="bg-white rounded-[2rem] p-6 border border-slate-100 shadow-sm hover:shadow-xl hover:-translate-y-1 transition-all group flex flex-col h-64 cursor-pointer"
+                onClick={() => handleReadNotice(notice)}
+                className={`bg-white rounded-3xl p-6 border shadow-sm hover:shadow-xl hover:-translate-y-1 transition-all group flex flex-col h-64 cursor-pointer relative ${
+                  isUnread ? 'border-indigo-200 shadow-indigo-100/50' : 'border-slate-100'
+                }`}
               >
+                {/* UNREAD DOT INDICATOR */}
+                {isUnread && (
+                  <div className="absolute top-6 right-6 w-3 h-3 bg-rose-500 rounded-full animate-pulse shadow-sm shadow-rose-200" title="New Notice"></div>
+                )}
+
                 {/* Card Header */}
-                <div className="flex items-center justify-between mb-4">
+                <div className="flex items-center justify-between mb-4 pr-6">
                   <div className="flex items-center gap-3">
                     <div className="w-10 h-10 rounded-xl bg-slate-50 flex items-center justify-center group-hover:bg-indigo-50 transition-colors shrink-0">
                       {style.icon}
@@ -174,17 +216,13 @@ export default function NoticePage() {
                       </span>
                     </div>
                   </div>
-                  <span className="text-[10px] font-bold text-slate-400">
-                    {new Date(notice.createdAt).toLocaleDateString('ja-JP')}
-                  </span>
                 </div>
 
                 {/* Card Title & Content Preview */}
                 <div className="flex-1 flex flex-col min-h-0">
-                  <h3 className="text-lg font-black text-slate-900 line-clamp-2 mb-2 group-hover:text-indigo-600 transition-colors">
+                  <h3 className={`text-lg font-black line-clamp-2 mb-2 group-hover:text-indigo-600 transition-colors pr-2 ${isUnread ? 'text-slate-900' : 'text-slate-700'}`}>
                     {notice.title}
                   </h3>
-                  {/* line-clamp-3 limits text to 3 lines with an ellipsis */}
                   <p className="text-xs text-slate-500 line-clamp-3 leading-relaxed">
                     {notice.content}
                   </p>
@@ -192,9 +230,16 @@ export default function NoticePage() {
 
                 {/* Card Footer */}
                 <div className="pt-4 mt-auto border-t border-slate-50 flex items-center justify-between">
-                  <span className="text-[10px] font-bold text-slate-400">
-                    by {notice.author?.name || 'Admin'}
-                  </span>
+                  <div className="flex items-center gap-2">
+                    <span className="text-[10px] font-bold text-slate-400">
+                      {new Date(notice.createdAt).toLocaleDateString('ja-JP')}
+                    </span>
+                    <span className="text-[10px] font-bold text-slate-300">|</span>
+                    <span className="text-[10px] font-bold text-slate-400">
+                      by {notice.author?.name || 'Admin'}
+                    </span>
+                  </div>
+                  
                   <span className="text-[10px] font-black text-indigo-500 opacity-0 group-hover:opacity-100 transition-opacity flex items-center">
                     詳細を見る <ChevronRight size={14} />
                   </span>
@@ -205,74 +250,85 @@ export default function NoticePage() {
         </div>
       )}
 
-      {/* READING MODAL (Centered) */}
+      {/* READING MODAL (Centered, Beautiful Curved UI, Z-Index 9999 to cover sidebar) */}
       {selectedNotice && (
-        <div className="fixed inset-0 z-[100] flex items-center justify-center bg-slate-900/40 backdrop-blur-sm p-4">
-          <div className="bg-white w-full max-w-2xl max-h-[85vh] rounded-[2.5rem] shadow-2xl flex flex-col animate-in zoom-in-95 duration-200 overflow-hidden">
+        <div className="fixed inset-0 z-[9999] flex items-center justify-center bg-slate-900/60 backdrop-blur-md p-4 sm:p-6">
+          {/* rounded-3xl and overflow-hidden ensures edges are always beautifully curved */}
+          <div className="bg-white w-full max-w-2xl max-h-[85vh] rounded-3xl shadow-2xl flex flex-col animate-in zoom-in-95 duration-200 overflow-hidden relative">
             
+            {/* Modal Top Decoration Line */}
+            <div className={`h-2 w-full ${getCategoryStyle(selectedNotice.category).bg.split(' ')[0]}`} />
+
             {/* Modal Header */}
-            <div className="p-8 pb-6 border-b border-slate-100 flex justify-between items-start bg-slate-50/50 shrink-0">
-              <div>
-                <div className="flex items-center gap-3 mb-3">
-                  <span className={`text-[10px] font-black px-2.5 py-1 rounded-md uppercase tracking-wider ${getCategoryStyle(selectedNotice.category).bg}`}>
+            <div className="p-8 sm:p-10 pb-6 flex justify-between items-start shrink-0 bg-white">
+              <div className="flex-1 pr-6">
+                <div className="flex items-center gap-3 mb-4">
+                  <span className={`text-[10px] font-black px-3 py-1 rounded-full uppercase tracking-wider ${getCategoryStyle(selectedNotice.category).bg}`}>
                     {selectedNotice.category}
                   </span>
-                  <span className="text-xs font-bold text-slate-400">
+                  <span className="text-[11px] font-bold text-slate-400">
                     {new Date(selectedNotice.createdAt).toLocaleDateString('ja-JP')}
                   </span>
                 </div>
-                <h2 className="text-2xl font-black text-slate-900 leading-tight">
+                <h2 className="text-3xl font-black text-slate-900 leading-tight">
                   {selectedNotice.title}
                 </h2>
-                <p className="text-xs font-bold text-slate-400 mt-2">
-                  Posted by {selectedNotice.author?.name || 'Admin'}
-                </p>
               </div>
 
-              <div className="flex items-center gap-2">
-                {isManager && (
-                  <button 
-                    onClick={() => handleDelete(selectedNotice.id)}
-                    className="p-2 text-slate-400 hover:text-rose-600 hover:bg-rose-50 rounded-full transition-colors"
-                    title="Delete Notice"
-                  >
-                    <Trash2 size={20} />
-                  </button>
-                )}
-                <button 
-                  onClick={() => setSelectedNotice(null)} 
-                  className="p-2 text-slate-400 hover:text-slate-800 hover:bg-slate-100 rounded-full transition-colors"
-                >
-                  <X size={24} />
-                </button>
-              </div>
+              <button 
+                onClick={() => setSelectedNotice(null)} 
+                className="p-3 bg-slate-50 text-slate-400 hover:text-slate-900 hover:bg-slate-100 rounded-2xl transition-all shrink-0 active:scale-90"
+              >
+                <X size={20} />
+              </button>
+            </div>
+
+            {/* Author Badge */}
+            <div className="px-8 sm:px-10 mb-6 bg-white">
+               <div className="flex items-center gap-2 p-2.5 bg-slate-50 border border-slate-100 rounded-2xl w-fit">
+                  <div className="w-6 h-6 rounded-full bg-white flex items-center justify-center shadow-sm">
+                    <User size={12} className="text-slate-400" />
+                  </div>
+                  <p className="text-[10px] font-black text-slate-500 uppercase tracking-widest pr-2">
+                    BY {selectedNotice.author?.name || 'ADMIN'}
+                  </p>
+               </div>
             </div>
 
             {/* Modal Content Body (Scrollable) */}
-            <div className="p-8 overflow-y-auto flex-1 custom-scrollbar">
-              <div className="text-sm text-slate-600 whitespace-pre-wrap leading-loose font-medium">
+            <div className="px-8 sm:px-10 pb-10 overflow-y-auto flex-1 custom-scrollbar bg-white">
+              <div className="text-[15px] text-slate-600 whitespace-pre-wrap leading-[1.8] font-medium">
                 {selectedNotice.content}
               </div>
             </div>
 
             {/* Modal Footer */}
-            <div className="p-6 border-t border-slate-100 shrink-0 bg-slate-50 flex justify-end">
+            <div className="p-8 border-t border-slate-50 bg-slate-50/50 flex justify-between items-center shrink-0">
+              {isManager ? (
+                <button 
+                  onClick={() => handleDelete(selectedNotice.id)}
+                  className="flex items-center gap-2 text-slate-400 hover:text-rose-600 transition-colors text-[11px] font-black uppercase tracking-widest"
+                >
+                  <Trash2 size={16} /> 削除する
+                </button>
+              ) : <div />}
+              
               <button 
                 onClick={() => setSelectedNotice(null)}
-                className="px-6 py-2.5 bg-slate-900 text-white text-xs font-black rounded-xl hover:bg-slate-800 transition-colors"
+                className="px-8 py-3.5 bg-slate-900 text-white text-xs font-black rounded-2xl hover:bg-slate-800 transition-colors shadow-lg active:scale-95"
               >
-                閉じる (Close)
+                確認しました (Confirmed)
               </button>
             </div>
           </div>
         </div>
       )}
 
-      {/* CREATE NEW NOTICE MODAL (Manager only) */}
+      {/* CREATE NEW NOTICE MODAL (Manager only - Floating Right Side) */}
       {showForm && (
         <>
-          <div className="fixed inset-0 bg-slate-900/40 backdrop-blur-sm z-50" onClick={() => setShowForm(false)} />
-          <div className="fixed inset-y-0 right-0 w-full max-w-md bg-white z-[60] shadow-2xl p-10 animate-in slide-in-from-right duration-500 flex flex-col">
+          <div className="fixed inset-0 bg-slate-900/40 backdrop-blur-sm z-[9998]" onClick={() => setShowForm(false)} />
+          <div className="fixed inset-y-4 right-4 w-full max-w-md bg-white z-[9999] shadow-2xl p-8 animate-in slide-in-from-right duration-500 flex flex-col rounded-3xl overflow-hidden">
             <div className="flex justify-between items-center mb-10">
               <h2 className="text-2xl font-black text-slate-900 tracking-tighter">掲示板に投稿</h2>
               <button onClick={() => setShowForm(false)} className="p-2 hover:bg-slate-100 rounded-full">

@@ -283,7 +283,7 @@ export default function TasksPage() {
       </div>
 
       <div className="flex justify-between items-center mb-8">
-        <div><h1 className="text-3xl font-black text-slate-900 tracking-tight">タスク管理</h1><p className="text-slate-600 font-bold text-sm mt-1">{viewMode === 'active' ? 'Smart List: 現在進行中のタスク' : 'Archive: 完了済みのタスク一覧'}</p></div>
+        <div><h1 className="text-3xl font-black text-slate-900 tracking-tight">タスク管理</h1><p className="text-slate-600 font-bold text-sm mt-1">{viewMode === 'active' ? '現在進行中のタスク' : 'Archive: 完了済みのタスク一覧'}</p></div>
         <button onClick={() => setIsModalOpen(true)} className="bg-indigo-600 text-white px-6 py-3 rounded-2xl font-bold flex items-center gap-2 shadow-lg hover:bg-indigo-700 transition-all active:scale-95"><Plus size={20} /> タスク作成</button>
       </div>
 
