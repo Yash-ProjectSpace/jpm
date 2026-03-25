@@ -3,7 +3,7 @@
 import React, { useState, useEffect } from 'react';
 import { 
   Users, ShieldCheck, Mail, Trash2, 
-  UserCog, Loader2, Search, AlertCircle 
+  Loader2, Search, AlertCircle 
 } from 'lucide-react';
 
 export default function AdminMembersPage() {
@@ -14,7 +14,8 @@ export default function AdminMembersPage() {
   const fetchMembers = async () => {
     setLoading(true);
     try {
-      const res = await fetch('/api/members');
+      // 修正: 正しいバックエンドのパスに変更
+      const res = await fetch('/api/admin/members');
       if (res.ok) {
         const data = await res.json();
         setMembers(Array.isArray(data) ? data : (data.members || []));
@@ -30,27 +31,17 @@ export default function AdminMembersPage() {
     fetchMembers();
   }, []);
 
-  const handleUpdateRole = async (id: string, currentRole: string) => {
-    const newRole = currentRole === 'MANAGER' ? 'EMPLOYEE' : 'MANAGER';
-    if (!confirm(`権限を ${newRole} に変更してもよろしいですか？`)) return;
-    
-    try {
-      const res = await fetch('/api/members', {
-        method: 'PATCH',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ id, role: newRole }),
-      });
-      if (res.ok) fetchMembers();
-    } catch (error) {
-      alert("権限の更新に失敗しました");
-    }
-  };
-
+  // 削除機能のみを残しました
   const handleDelete = async (id: string) => {
     if (!confirm("このメンバーを削除してもよろしいですか？この操作は取り消せません。")) return;
     try {
-      const res = await fetch(`/api/members?id=${id}`, { method: 'DELETE' });
-      if (res.ok) fetchMembers();
+      // 修正: 正しいバックエンドのパスに変更
+      const res = await fetch(`/api/admin/members?id=${id}`, { method: 'DELETE' });
+      if (res.ok) {
+        fetchMembers(); // 成功したらリストを再取得
+      } else {
+        alert("削除に失敗しました。サーバーエラーです。");
+      }
     } catch (error) {
       alert("削除に失敗しました");
     }
@@ -64,27 +55,25 @@ export default function AdminMembersPage() {
   return (
     <div className="p-8 max-w-[1200px] mx-auto w-full text-slate-900">
       
-{/* Header with Search Bar beside the Title */}
+      {/* Header */}
       <div className="flex items-center gap-4 mb-10">
         <div className="flex items-center gap-2 shrink-0">
            <Users size={28} className="text-indigo-600" />
            <h1 className="text-2xl font-black tracking-tight">メンバー管理</h1>
         </div>
 
-{/* --- FIXED SEARCH BAR (Forcing icon to move right) --- */}
+        {/* Search Bar */}
         <div className="relative w-64 group flex items-center">
-          {/* left-6 に広げ、さらにアイコン自体に ml-1 (Margin Left) を追加して強制移動 */}
           <div className="absolute left-6 top-1/2 -translate-y-1/2 flex items-center pointer-events-none z-10">
             <Search 
               className="text-slate-400 group-focus-within:text-indigo-500 transition-colors" 
               size={18}
-              style={{ marginLeft: '4px' }} // これでさらに少し右へ押し出します
+              style={{ marginLeft: '4px' }} 
             />
           </div>
           <input 
             type="text"
             placeholder="メンバーを検索..."
-            /* アイコンが右に来た分、パディングも 4rem (約64px) に広げて文字との衝突を避けます */
             style={{ paddingLeft: '4rem' }} 
             className="w-full bg-white border border-slate-200 rounded-2xl py-2.5 pr-4 text-sm outline-none focus:ring-2 focus:ring-indigo-500 shadow-sm transition-all text-slate-900"
             value={searchQuery}
@@ -93,6 +82,7 @@ export default function AdminMembersPage() {
         </div>
       </div>
 
+      {/* Loading & Grid */}
       {loading ? (
         <div className="flex justify-center py-20">
           <Loader2 className="animate-spin text-indigo-600" size={40} />
@@ -135,19 +125,13 @@ export default function AdminMembersPage() {
                 <Mail size={10} /> {member.email}
               </div>
 
-              {/* Action Buttons */}
-              <div className="w-full grid grid-cols-2 gap-2 pt-4 border-t border-slate-50">
-                <button 
-                  onClick={() => handleUpdateRole(member.id, member.role)}
-                  className="flex items-center justify-center gap-1.5 py-2 rounded-xl bg-slate-50 text-slate-600 hover:bg-indigo-50 hover:text-indigo-600 transition-all text-[9px] font-black"
-                >
-                  <UserCog size={12} /> 権限変更
-                </button>
+              {/* Action Buttons (Only Delete remains, taking full width) */}
+              <div className="w-full pt-4 border-t border-slate-50">
                 <button 
                   onClick={() => handleDelete(member.id)}
-                  className="flex items-center justify-center gap-1.5 py-2 rounded-xl bg-slate-50 text-slate-400 hover:bg-rose-50 hover:text-rose-600 transition-all text-[9px] font-black"
+                  className="w-full flex items-center justify-center gap-1.5 py-2.5 rounded-xl bg-slate-50 text-slate-400 hover:bg-rose-50 hover:text-rose-600 transition-all text-[10px] font-black"
                 >
-                  <Trash2 size={12} /> 削除
+                  <Trash2 size={14} /> このメンバーを削除
                 </button>
               </div>
             </div>

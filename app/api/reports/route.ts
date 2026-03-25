@@ -3,18 +3,13 @@ import { prisma } from '@/lib/prisma';
 import { getServerSession } from 'next-auth';
 import { authOptions } from '@/lib/auth';
 
-// TypeScript interface to remove red lines
 interface UserWithRole {
   id: string;
   role: string;
   name: string | null;
   email: string | null;
-  image: string | null;
 }
 
-// ==========================================
-// 1. GET: Fetch Reports (Admin sees all, User sees own)
-// ==========================================
 export async function GET() {
   try {
     const session = await getServerSession(authOptions);
@@ -30,7 +25,7 @@ export async function GET() {
     if (currentUser.role === 'MANAGER' || currentUser.role === 'ADMIN') {
       reports = await prisma.report.findMany({
         include: {
-          author: { select: { name: true} },
+          author: { select: { name: true } },
           comments: {
             include: { author: { select: { name: true } } },
             orderBy: { createdAt: 'asc' }
@@ -57,9 +52,6 @@ export async function GET() {
   }
 }
 
-// ==========================================
-// 2. POST: Create New Report (FIXES 405 ERROR)
-// ==========================================
 export async function POST(req: Request) {
   try {
     const session = await getServerSession(authOptions);
@@ -71,10 +63,9 @@ export async function POST(req: Request) {
 
     if (!currentUser) return NextResponse.json({ error: "User not found" }, { status: 404 });
 
-    const body = await req.json();
-    const { content, taskId } = body;
+    const { content, taskId } = await req.json();
 
-    if (!content || content.trim() === "") {
+    if (!content?.trim()) {
       return NextResponse.json({ error: "Content is required" }, { status: 400 });
     }
 
@@ -82,7 +73,6 @@ export async function POST(req: Request) {
       data: {
         content: content.trim(),
         authorId: currentUser.id,
-        // Ensure taskId is null if it's a general daily report
         taskId: taskId || null,
         status: 'PENDING'
       }

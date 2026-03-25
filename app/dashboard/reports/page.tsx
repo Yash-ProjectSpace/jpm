@@ -35,7 +35,11 @@ export default function ReportsPage() {
     try {
       const res = await fetch('/api/reports/generate');
       const data = await res.json();
-      if (data.draft) setReportText(data.draft);
+      if (data.draft) {
+        setReportText(data.draft);
+      } else if (data.error) {
+        alert("AI Error: " + data.details);
+      }
     } catch (error) {
       alert("AIレポートの生成に失敗しました。");
     } finally {
@@ -47,6 +51,7 @@ export default function ReportsPage() {
     if (!reportText.trim()) return;
     setIsSubmitting(true);
     try {
+      // FIX: Changed URL from '/api/reports/generate' to '/api/reports'
       const res = await fetch('/api/reports', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
@@ -60,20 +65,16 @@ export default function ReportsPage() {
       } else {
         alert("提出に失敗しました。");
       }
+    } catch (error) {
+      alert("通信エラーが発生しました。");
     } finally {
       setIsSubmitting(false);
     }
   };
 
   return (
-    // We keep the outer container full width for background color, 
-    // but center the content inside a wrapper.
     <div className="p-8 bg-slate-50 min-h-screen text-slate-900 flex flex-col items-center">
       
-      {/* NEW WRAPPER: 
-        max-w-5xl and w-full ensures the header and the card 
-        always align perfectly, no matter how wide the screen gets. 
-      */}
       <div className="w-full max-w-5xl flex flex-col flex-1">
         
         {/* HEADER */}
@@ -102,13 +103,22 @@ export default function ReportsPage() {
                 </div>
                 <h3 className="font-black text-lg text-slate-900 tracking-widest uppercase">新規レポート作成</h3>
               </div>
+
+              {/* AI BUTTON */}
               <button 
+                type="button"
                 onClick={generateAiReport}
                 disabled={isGenerating}
-                className="bg-indigo-50 hover:bg-indigo-100 text-indigo-600 px-6 py-3 rounded-2xl text-[11px] font-black uppercase tracking-widest flex items-center gap-2 transition-all active:scale-95"
+                className="bg-indigo-50 hover:bg-indigo-100 text-indigo-600 px-6 py-3 rounded-2xl text-[11px] font-black uppercase tracking-widest flex items-center gap-2 transition-all active:scale-95 disabled:opacity-50"
               >
-                {isGenerating ? <Loader2 size={16} className="animate-spin" /> : <Sparkles size={16} />}
-                AIで下書きを作成
+                <span className="flex items-center justify-center">
+                  {isGenerating ? (
+                    <Loader2 size={16} className="animate-spin" />
+                  ) : (
+                    <Sparkles size={16} />
+                  )}
+                </span>
+                <span>{isGenerating ? "生成中..." : "AIで下書きを作成"}</span>
               </button>
             </div>
 
@@ -125,8 +135,10 @@ export default function ReportsPage() {
                 disabled={isSubmitting || !reportText}
                 className="bg-slate-900 text-white px-10 py-4 rounded-full font-black text-xs uppercase tracking-[0.2em] hover:bg-indigo-600 transition-all shadow-xl disabled:opacity-50 active:scale-95 flex items-center gap-2"
               >
-                {isSubmitting ? <Loader2 size={18} className="animate-spin" /> : <Send size={18} />}
-                レポートを提出
+                <span className="flex items-center justify-center">
+                  {isSubmitting ? <Loader2 size={18} className="animate-spin" /> : <Send size={18} />}
+                </span>
+                <span>レポートを提出</span>
               </button>
             </div>
           </div>

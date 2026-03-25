@@ -4,104 +4,59 @@ import { authOptions } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
 import { GoogleGenerativeAI } from "@google/generative-ai";
 
-const genAI = new GoogleGenerativeAI(process.env.GEMINI_API_KEY!);
+export const dynamic = 'force-dynamic';
 
-// ==========================================
-// 1. GET: Generates the AI Draft
-// ==========================================
 export async function GET() {
-  const session = await getServerSession(authOptions);
-
-  if (!session || !session.user) {
-    return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
-  }
-
-  try {
-    // Fetch completed tasks for the current user to create a draft
-    const completedTasks = await prisma.task.findMany({
-      where: {
-        status: "DONE",
-        // Ideally, you'd filter by assigneeId: (session.user as any).id
-      },
-      select: { title: true },
-    });
-
-    if (completedTasks.length === 0) {
-      return NextResponse.json({ 
-        draft: "本日は完了したタスクがまだありません。実施事項を記入してください。" 
-      });
-    }
-
-    const taskList = completedTasks.map((t) => `- ${t.title}`).join("\n");
-    
-    const prompt = `
-      あなたはプロフェッショナルなビジネスアシスタントです。
-      以下の完了したタスクリストを基に、丁寧な「日報」の下書きを作成してください。
-      
-      完了タスク:
-      ${taskList}
-
-      構成:
-      - 今日の概要
-      - 実施事項
-      - AIによる所感と明日へのアドバイス
-      トーン: 誠実、プロフェッショナル
-    `;
-
-    const model = genAI.getGenerativeModel({ model: "gemini-1.5-flash" }); // Note: Corrected model name
-    const result = await model.generateContent(prompt);
-    const text = result.response.text();
-
-    return NextResponse.json({ draft: text });
-
-  } catch (error) {
-    console.error("AI Generation Error:", error);
-    return NextResponse.json({ error: "AI生成中にエラーが発生しました" }, { status: 500 });
-  }
-}
-
-// ==========================================
-// 2. POST: Saves the Daily Report (FIXES SUBMISSION FAILED)
-// ==========================================
-export async function POST(req: Request) {
   try {
     const session = await getServerSession(authOptions);
+    if (!session?.user?.email) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
 
-    if (!session || !session.user) {
-      return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
-    }
-
-    const body = await req.json();
-    const { content, taskId } = body;
-
-    if (!content || content.trim() === "") {
-      return NextResponse.json({ error: "内容を入力してください" }, { status: 400 });
-    }
-
-    // Get current user ID
     const user = await prisma.user.findUnique({
-      where: { email: session.user.email! }
+      where: { email: session.user.email }
+    });
+    if (!user) return NextResponse.json({ error: "User not found" }, { status: 404 });
+
+    // --- DEBUG STEP: SEARCH EVERYTHING ---
+    // We are temporarily removing 'assigneeId' to see if it finds ANY 'DONE' tasks
+    const completedTasks = await prisma.task.findMany({
+      where: { 
+        status: "DONE" 
+      },
+      select: { title: true, assigneeId: true },
     });
 
-    if (!user) {
-      return NextResponse.json({ error: "ユーザーが見つかりません" }, { status: 404 });
-    }
-
-    // Create the report in the database
-    const newReport = await prisma.report.create({
-      data: {
-        content: content,
-        status: "PENDING",
-        authorId: user.id,
-        // If a taskId is provided, link it. If not, set to null (General Report)
-        taskId: taskId || null, 
-      }
+    console.log("------------------------------------------");
+    console.log("LOGGED IN USER ID:", user.id);
+    console.log("TOTAL DONE TASKS IN DB:", completedTasks.length);
+    
+    completedTasks.forEach((t, i) => {
+      console.log(`Task ${i+1}: ${t.title} | Owner ID: ${t.assigneeId}`);
     });
+    console.log("------------------------------------------");
 
-    return NextResponse.json({ success: true, report: newReport }, { status: 201 });
+    const apiKey = process.env.GEMINI_API_KEY;
+    const genAI = new GoogleGenerativeAI(apiKey!);
+    const model = genAI.getGenerativeModel({ model: "gemini-2.5-flash" }); 
 
-  } catch (error) {
-    console.error("Report Submission Error:", error);
-    return NextResponse.json({ error: "日報の送信に失敗しました" }, { status: 500 });
+    let taskContent = completedTasks.length === 0 
+      ? "本日はシステム上で完了（DONE）として記録されたタスクはありません。" 
+      : completedTasks.map((t) => `- ${t.title}`).join("\n");
+    
+    const prompt = `
+      From: ${user.name}
+      ■ 本日の実施事項
+      ${taskContent} 
+      ■ [Remarks / Plans Going Forward]
+      (今日の内容に基づき、明日以降の予定を日本語で2文で。)
+      
+      制約: 前置きは一切禁止。Fromから始めてください。
+    `;
+
+    const result = await model.generateContent(prompt);
+    return NextResponse.json({ draft: result.response.text() });
+
+  } catch (error: any) {
+    console.error("CRITICAL ERROR:", error);
+    return NextResponse.json({ error: "Failed", details: error.message }, { status: 500 });
   }
 }

@@ -8,7 +8,7 @@ export async function POST(req: Request) {
     const { projects, totalTasks } = body;
     
     // 2. Insert your NEW working API key here
-    const API_KEY = "AIzaSyAHlBM_tc2qVlINBkKU6sAmGNXTeXz7e0U"; 
+    const API_KEY = "AIzaSyA7ljbiJIRLgI40sxgdDTHbTLxaToncoxo"; 
 
     // 3. Updated prompt to force exactly 3 insights in a JSON Array
     const prompt = `

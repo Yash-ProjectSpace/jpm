@@ -1,6 +1,6 @@
 import { NextAuthOptions } from "next-auth";
 import CredentialsProvider from "next-auth/providers/credentials";
-import GoogleProvider from "next-auth/providers/google"; // ★追加
+import GoogleProvider from "next-auth/providers/google";
 import { prisma } from "@/lib/prisma";
 import bcrypt from "bcryptjs";
 
@@ -12,7 +12,7 @@ export const authOptions: NextAuthOptions = {
       clientSecret: process.env.GOOGLE_CLIENT_SECRET!,
     }),
     
-    // --- 2. Credentials Provider (既存のメール/パスワード) ---
+    // --- 2. Credentials Provider ---
     CredentialsProvider({
       name: "Credentials",
       credentials: {
@@ -47,55 +47,47 @@ export const authOptions: NextAuthOptions = {
   ],
   pages: { 
     signIn: "/login",
-    // エラー時のリダイレクト先も設定しておくと安心です
     error: '/login', 
   },
   session: { strategy: "jwt" },
   callbacks: {
-    // ★ ここが超重要！Googleログイン時のフローを制御します
     async signIn({ user, account, profile }) {
-      // Googleログインの場合
       if (account?.provider === "google") {
         if (!profile?.email) return false;
 
-        // DBにユーザーが存在するかチェック
         const existingUser = await prisma.user.findUnique({
           where: { email: profile.email }
         });
 
         // パターンA: 完全に新規のユーザー
         if (!existingUser) {
-          // とりあえずDBに名前とメールだけでユーザーを作成
           await prisma.user.create({
             data: {
               email: profile.email,
               name: profile.name || "Google User",
-              // passwordはまだnull
-              // departmentはPrismaのデフォルトで"DX"になりますが、後で確認させます
+              department: "DX", // デフォルト値を設定
             }
           });
-          // サインアップ直後にプロフィール補完ページへ強制リダイレクト（URLにメールアドレスを付与）
-          return `/register/complete-profile?email=${encodeURIComponent(profile.email)}`;
+          // 修正ポイント: /register ではなく /signup にリダイレクト
+          return `/signup/complete-profile?email=${encodeURIComponent(profile.email)}`;
         }
 
-        // パターンB: 過去にGoogleでサインインしたが、パスワード設定を終わらせていないユーザー
+        // パターンB: Google認証済みだがパスワード未設定
         if (!existingUser.password) {
-          return `/register/complete-profile?email=${encodeURIComponent(profile.email)}`;
+          // 修正ポイント: /register ではなく /signup にリダイレクト
+          return `/signup/complete-profile?email=${encodeURIComponent(profile.email)}`;
         }
 
-        // パターンC: 既存のユーザー（DX部署のみ許可のルールを適用）
+        // パターンC: 既存ユーザーの部署チェック
         if (existingUser.department !== "DX") {
-          return "/login?error=AccessDenied"; // DX部以外は弾く
+          return "/login?error=AccessDenied";
         }
 
-        return true; // 全てのチェックを通過したらログイン許可
+        return true;
       }
-
-      // 既存のCredentialsログインの場合はそのまま許可
       return true;
     },
 
-    // Tokenに最新のDB情報を含める（Googleログイン時、デフォルトだとroleやidが欠けるため）
     async jwt({ token }) {
       if (token.email) {
         const dbUser = await prisma.user.findUnique({
@@ -110,7 +102,6 @@ export const authOptions: NextAuthOptions = {
       return token;
     },
 
-    // SessionにTokenの情報を渡す
     async session({ session, token }) {
       if (session.user) {
         (session.user as any).id = token.id as string;
