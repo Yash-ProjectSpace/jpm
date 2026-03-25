@@ -64,19 +64,29 @@ export default function AdminMembersPage() {
   return (
     <div className="p-8 max-w-[1200px] mx-auto w-full text-slate-900">
       
-      {/* Header with Search Bar beside the Title */}
-      <div className="flex items-center gap-6 mb-10">
-        <div className="flex items-center gap-3 shrink-0">
+{/* Header with Search Bar beside the Title */}
+      <div className="flex items-center gap-4 mb-10">
+        <div className="flex items-center gap-2 shrink-0">
            <Users size={28} className="text-indigo-600" />
            <h1 className="text-2xl font-black tracking-tight">メンバー管理</h1>
         </div>
 
-        {/* Simplified Search Bar (Magnifier icon only) */}
-        <div className="relative w-64">
-          <Search className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400" size={16} />
+{/* --- FIXED SEARCH BAR (Forcing icon to move right) --- */}
+        <div className="relative w-64 group flex items-center">
+          {/* left-6 に広げ、さらにアイコン自体に ml-1 (Margin Left) を追加して強制移動 */}
+          <div className="absolute left-6 top-1/2 -translate-y-1/2 flex items-center pointer-events-none z-10">
+            <Search 
+              className="text-slate-400 group-focus-within:text-indigo-500 transition-colors" 
+              size={18}
+              style={{ marginLeft: '4px' }} // これでさらに少し右へ押し出します
+            />
+          </div>
           <input 
             type="text"
-            className="w-full bg-white border border-slate-200 rounded-xl py-2 pl-10 pr-3 text-sm outline-none focus:ring-2 focus:ring-indigo-500 shadow-sm transition-all"
+            placeholder="メンバーを検索..."
+            /* アイコンが右に来た分、パディングも 4rem (約64px) に広げて文字との衝突を避けます */
+            style={{ paddingLeft: '4rem' }} 
+            className="w-full bg-white border border-slate-200 rounded-2xl py-2.5 pr-4 text-sm outline-none focus:ring-2 focus:ring-indigo-500 shadow-sm transition-all text-slate-900"
             value={searchQuery}
             onChange={(e) => setSearchQuery(e.target.value)}
           />

@@ -8,18 +8,16 @@ import {
   ShieldCheck, 
   LayoutDashboard, 
   FolderKanban, 
-  CheckSquare, 
   Users, 
   Bell, 
   LogOut,
-  ClipboardCheck // Added this icon for Daily Reports
+  ClipboardCheck
 } from 'lucide-react';
 
 const adminNavItems = [
   { name: 'ダッシュボード', href: '/admin/dashboard', icon: LayoutDashboard },
   { name: '全プロジェクト', href: '/admin/projects', icon: FolderKanban },
-  // SPLIT: We now have Daily Reports and Task Approvals as separate items
-　{ name: '日報確認', href: '/admin/daily-reports', icon: ClipboardCheck },
+  { name: '日報確認', href: '/admin/daily-reports', icon: ClipboardCheck },
   { name: 'メンバー管理', href: '/admin/members', icon: Users },
   { name: 'お知らせ配信', href: '/admin/notices', icon: Bell },
 ];
@@ -28,54 +26,57 @@ export default function AdminSidebar() {
   const pathname = usePathname();
 
   return (
-    <aside className="w-72 shrink-0 bg-slate-900 text-slate-300 flex flex-col h-screen sticky top-0 border-r border-slate-800 shadow-2xl z-50">
+    <aside className="w-[250px] shrink-0 bg-white flex flex-col h-screen sticky top-0 border-r border-slate-100 z-50">
       
       {/* Admin Logo Section */}
-      <div className="h-24 flex items-center px-8 border-b border-slate-800 bg-slate-900 relative overflow-hidden shrink-0">
-        <div className="relative z-10 flex items-center gap-3">
-          <div className="bg-indigo-500 p-2 rounded-xl text-white shadow-lg shadow-indigo-500/20">
-            <ShieldCheck size={24} />
+      <div className="h-20 flex items-center px-6 border-b border-slate-50 bg-white shrink-0">
+        <div className="flex items-center gap-3">
+          <div className="bg-indigo-600 p-2 rounded-lg text-white shadow-sm">
+            <ShieldCheck size={20} />
           </div>
           <div>
-            <h1 className="text-2xl font-black text-white tracking-tight">JPM</h1>
-            <p className="text-[9px] font-black text-indigo-400 uppercase tracking-[0.2em]">Manager Console</p>
+            <h1 className="text-xl font-black text-slate-900 tracking-tight">JPM</h1>
+            <p className="text-[8px] font-black text-indigo-500 uppercase tracking-[0.2em]">マネージャーページ</p>
           </div>
         </div>
       </div>
 
       {/* Navigation Links */}
-      <nav className="flex-1 px-4 py-8 space-y-2 overflow-y-auto">
-        <p className="px-4 text-[10px] font-black text-slate-500 uppercase tracking-widest mb-4">Management</p>
+      <nav className="flex-1 px-4 py-6 space-y-1 overflow-y-auto">
+        <p className="px-3 text-[10px] font-black text-slate-400 uppercase tracking-widest mb-3">Management</p>
         
         {adminNavItems.map((item) => {
-          // Check if exactly active or if sub-page of the route is active
-          const isActive = pathname === item.href || (item.href !== '/admin/dashboard' && pathname?.startsWith(`${item.href}/`));
+          // Precise path matching
+          const isActive = pathname === item.href || (item.href !== '/admin/dashboard' && pathname?.startsWith(item.href));
           const Icon = item.icon;
           
           return (
             <Link 
               key={item.name} 
               href={item.href}
-              className={`flex items-center gap-3 px-4 py-3.5 rounded-2xl font-bold text-sm transition-all group ${
+              className={`flex items-center gap-3 px-4 py-2.5 rounded-xl font-bold text-sm transition-colors duration-200 ${
                 isActive 
-                  ? 'bg-indigo-600 text-white shadow-lg shadow-indigo-900/50' 
-                  : 'text-slate-400 hover:bg-slate-800 hover:text-white'
+                  ? 'bg-indigo-50 text-indigo-600 ring-1 ring-indigo-100/50' 
+                  : 'text-slate-500 hover:bg-slate-50 hover:text-slate-900'
               }`}
             >
-              <Icon size={18} className={isActive ? 'text-white' : 'text-slate-500 group-hover:text-indigo-400 transition-colors'} />
-              {item.name}
+              <Icon size={18} className={`${
+                isActive ? 'text-indigo-600' : 'text-slate-400'
+              } transition-colors`} />
+              
+              <span>{item.name}</span>
             </Link>
           );
         })}
       </nav>
 
       {/* Logout Button */}
-      <div className="p-4 border-t border-slate-800 bg-slate-900 shrink-0">
+      <div className="p-4 border-t border-slate-50 bg-white shrink-0">
         <button 
           onClick={() => signOut({ callbackUrl: '/login' })}
-          className="w-full flex items-center gap-3 px-4 py-3.5 rounded-2xl font-bold text-sm text-rose-400 hover:bg-rose-500/10 hover:text-rose-300 transition-all group"
+          className="w-full flex items-center gap-3 px-4 py-2.5 rounded-xl font-bold text-sm text-slate-400 hover:bg-rose-50 hover:text-rose-600 transition-colors duration-200 group"
         >
-          <LogOut size={18} className="text-rose-500 group-hover:text-rose-400" />
+          <LogOut size={18} className="text-slate-400 group-hover:text-rose-500 transition-colors" />
           ログアウト
         </button>
       </div>

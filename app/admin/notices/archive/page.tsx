@@ -60,9 +60,9 @@ export default function NoticeArchivePage() {
   return (
     <div className="p-8 max-w-[1200px] mx-auto w-full min-h-screen text-slate-900">
       
-      {/* Header Area */}
-      <div className="flex flex-col md:flex-row md:items-center justify-between gap-6 mb-12">
-        <div className="flex items-center gap-4">
+{/* Header Area - 横並びと配置の修正 */}
+      <div className="flex items-center gap-6 mb-12">
+        <div className="flex items-center gap-4 shrink-0">
           <Link href="/admin/notices" className="p-3 bg-white border border-slate-200 rounded-2xl text-slate-400 hover:text-amber-500 transition-all shadow-sm">
             <ArrowLeft size={20} />
           </Link>
@@ -72,13 +72,18 @@ export default function NoticeArchivePage() {
           </div>
         </div>
 
-        {/* Dynamic Search */}
-        <div className="relative w-full md:w-80">
-          <Search className="absolute left-4 top-1/2 -translate-y-1/2 text-slate-300" size={18} />
+        {/* Dynamic Search - メンバー管理と同じスタイルに統一 */}
+        <div className="relative w-80 group flex items-center">
+          {/* アイコンを右に少し寄せ、重なりを防ぐために z-10 を追加 */}
+          <div className="absolute left-5 top-1/2 -translate-y-1/2 flex items-center pointer-events-none z-10">
+            <Search className="text-slate-300 group-focus-within:text-amber-500 transition-colors" size={18} />
+          </div>
           <input 
             type="text"
             placeholder="タイトルや内容で検索..."
-            className="w-full bg-white border border-slate-200 rounded-2xl py-3 pl-12 pr-4 text-xs font-bold outline-none focus:ring-2 focus:ring-amber-500 shadow-sm transition-all"
+            /* 左余白を 3.5rem に固定して文字がアイコンに被らないように修正 */
+            style={{ paddingLeft: '3.5rem' }}
+            className="w-full bg-white border border-slate-200 rounded-2xl py-3 pr-4 text-xs font-bold outline-none focus:ring-2 focus:ring-amber-500 shadow-sm transition-all text-slate-900"
             value={searchQuery}
             onChange={(e) => setSearchQuery(e.target.value)}
           />

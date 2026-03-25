@@ -19,35 +19,44 @@ export default function ReportReviewCard({ report }: { report: any }) {
   const [isSubmitting, setIsSubmitting] = useState(false);
   const router = useRouter();
 
-const handleReview = async (status: 'APPROVED' | 'REVISION_REQUESTED') => {
-  if (status === 'REVISION_REQUESTED' && !feedback.trim()) {
-    alert("修正を依頼する場合は、フィードバックを入力してください。");
-    return;
-  }
-
-  setIsSubmitting(true);
-  try {
-    const res = await fetch(`/api/reports/${report.id}/review`, {
-      method: 'PATCH',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ status, feedback }),
-    });
-
-    if (res.ok) {
-      // 1. Close modal first
-      setIsOpen(false);
-      // 2. Clear feedback
-      setFeedback('');
-      // 3. Refresh data
-      router.refresh(); 
+  const handleReview = async (status: 'APPROVED' | 'REVISION_REQUESTED') => {
+    if (status === 'REVISION_REQUESTED' && !feedback.trim()) {
+      alert("修正を依頼する場合は、フィードバックを入力してください。");
+      return;
     }
-  } catch (error) {
-    console.error(error);
-  } finally {
-    // Only update state if the modal is still intended to be open
-    setIsSubmitting(false);
-  }
-};
+
+    setIsSubmitting(true);
+    try {
+      const res = await fetch(`/api/reports/${report.id}/review`, {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ status, feedback }),
+      });
+
+      if (res.ok) {
+        setIsOpen(false);
+        setFeedback('');
+        router.refresh(); 
+      }
+    } catch (error) {
+      console.error(error);
+    } finally {
+      setIsSubmitting(false);
+    }
+  };
+
+  // --- FIX: ステータスに応じた色を返すヘルパー関数を追加 ---
+  const getStatusStyle = (status: string) => {
+    switch(status) {
+      case 'APPROVED': 
+        return 'bg-emerald-100 text-emerald-700';
+      case 'REVISION_REQUESTED': 
+        return 'bg-rose-100 text-rose-700';
+      default: 
+        return 'bg-amber-100 text-amber-700'; // PENDINGなど
+    }
+  };
+
   return (
     <>
       {/* --- PREVIEW CARD --- */}
@@ -67,19 +76,18 @@ const handleReview = async (status: 'APPROVED' | 'REVISION_REQUESTED') => {
               </p>
             </div>
           </div>
-          <span className={`text-[9px] font-black px-2 py-0.5 rounded-full uppercase tracking-tighter ${
-            report.status === 'PENDING' ? 'bg-amber-100 text-amber-700' : 'bg-emerald-100 text-emerald-700'
-          }`}>
+          {/* FIX: ヘルパー関数を使って正しい色を適用 */}
+          <span className={`text-[9px] font-black px-2 py-0.5 rounded-full uppercase tracking-tighter ${getStatusStyle(report.status)}`}>
             {report.status}
           </span>
         </div>
 
-        {/* Small Preview Title (Task name or Fallback) */}
+        {/* Small Preview Title */}
         <h3 className="font-bold text-sm text-slate-900 mb-2 truncate">
           {report.task?.title || "一般日報 (General Report)"}
         </h3>
 
-        {/* Message Preview with line-clamp */}
+        {/* Message Preview */}
         <p className="text-xs text-slate-500 line-clamp-2 leading-relaxed flex-1">
           {report.content}
         </p>
@@ -96,7 +104,10 @@ const handleReview = async (status: 'APPROVED' | 'REVISION_REQUESTED') => {
 
       {/* --- FULL VIEW MODAL --- */}
       {isOpen && (
-        <div className="fixed inset-0 bg-slate-900/60 backdrop-blur-md z-[200] flex items-center justify-center p-4 overflow-y-auto">
+        <div 
+          style={{ zIndex: 9999 }}
+          className="fixed inset-0 bg-slate-900/60 backdrop-blur-md flex items-center justify-center p-4 overflow-y-auto"
+        >
           <div className="bg-white rounded-[2.5rem] w-full max-w-2xl shadow-2xl overflow-hidden animate-in zoom-in-95 duration-200 my-auto">
             {/* Modal Header */}
             <div className="p-6 border-b flex justify-between items-center bg-slate-50/50">
@@ -161,29 +172,26 @@ const handleReview = async (status: 'APPROVED' | 'REVISION_REQUESTED') => {
                 
                 <div className="flex gap-3">
                   <button 
-  onClick={() => handleReview('REVISION_REQUESTED')}
-  disabled={isSubmitting}
-  className="flex-1 bg-white border border-rose-200 text-rose-600 hover:bg-rose-50 font-bold py-3.5 rounded-xl transition-all flex items-center justify-center gap-2 text-sm disabled:opacity-50"
->
-  {/* FIX: Wrap icons in a span to stabilize the DOM node */}
-  <span className="flex items-center justify-center">
-    {isSubmitting ? <Loader2 className="animate-spin" size={18} /> : <XCircle size={18} />}
-  </span>
-  修正依頼
-</button>
+                    onClick={() => handleReview('REVISION_REQUESTED')}
+                    disabled={isSubmitting}
+                    className="flex-1 bg-white border border-rose-200 text-rose-600 hover:bg-rose-50 font-bold py-3.5 rounded-xl transition-all flex items-center justify-center gap-2 text-sm disabled:opacity-50"
+                  >
+                    <span className="flex items-center justify-center">
+                      {isSubmitting ? <Loader2 className="animate-spin" size={18} /> : <XCircle size={18} />}
+                    </span>
+                    修正依頼
+                  </button>
 
-{/* --- INSIDE THE APPROVE BUTTON --- */}
-<button 
-  onClick={() => handleReview('APPROVED')}
-  disabled={isSubmitting}
-  className="flex-1 bg-indigo-600 hover:bg-indigo-700 text-white font-bold py-3.5 rounded-xl shadow-lg shadow-indigo-100 transition-all flex items-center justify-center gap-2 text-sm disabled:opacity-50 active:scale-95"
->
-  {/* FIX: Wrap icons in a span here too */}
-  <span className="flex items-center justify-center">
-    {isSubmitting ? <Loader2 className="animate-spin" size={18} /> : <CheckCircle size={18} />}
-  </span>
-  承認する
-</button>
+                  <button 
+                    onClick={() => handleReview('APPROVED')}
+                    disabled={isSubmitting}
+                    className="flex-1 bg-indigo-600 hover:bg-indigo-700 text-white font-bold py-3.5 rounded-xl shadow-lg shadow-indigo-100 transition-all flex items-center justify-center gap-2 text-sm disabled:opacity-50 active:scale-95"
+                  >
+                    <span className="flex items-center justify-center">
+                      {isSubmitting ? <Loader2 className="animate-spin" size={18} /> : <CheckCircle size={18} />}
+                    </span>
+                    承認する
+                  </button>
                 </div>
             </div>
           </div>

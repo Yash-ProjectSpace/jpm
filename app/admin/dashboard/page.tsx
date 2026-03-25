@@ -3,11 +3,18 @@
 import React, { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 import { useSession } from "next-auth/react";
+import dynamic from 'next/dynamic'; // <-- Added dynamic import
 import { 
   ShieldCheck, Users, Briefcase, Clock, Loader2, 
   AlertCircle, X, ExternalLink, Calendar, Sparkles,
   ChevronLeft, ChevronRight, Folder
 } from 'lucide-react';
+
+// <-- IMPORT YOUR OWL/WAVE ANIMATION HERE -->
+import waveAnimation from '@/public/animations/wave-animation.json'; 
+
+// <-- Dynamically import Lottie to prevent SSR hydration errors -->
+const Lottie = dynamic(() => import('lottie-react'), { ssr: false });
 
 export default function AdminDashboard() {
   const router = useRouter();
@@ -24,7 +31,7 @@ export default function AdminDashboard() {
     nearDeadlines: [] as any[]
   });
 
-  // --- NEW: Tracks which member's AI analysis we are currently viewing ---
+  // --- Tracks which member's AI analysis we are currently viewing ---
   const [currentAiIndex, setCurrentAiIndex] = useState(0);
 
   useEffect(() => {
@@ -111,7 +118,7 @@ export default function AdminDashboard() {
     };
   };
 
-  // --- NEW: Handlers for cycling through the AI analysis ---
+  // --- Handlers for cycling through the AI analysis ---
   const handlePrevAi = () => {
     setCurrentAiIndex((prev) => (prev === 0 ? members.length - 1 : prev - 1));
   };
@@ -131,23 +138,33 @@ export default function AdminDashboard() {
     );
   }
 
+  // --- Get the Admin's Name ---
+  const userName = (session?.user as any)?.name || '管理者';
+
   return (
     <div className="h-screen flex flex-col bg-[#f8fafc] overflow-hidden">
       
       <div className="flex-1 flex flex-col min-h-0 max-w-[1500px] mx-auto w-full p-6 lg:p-8">
         
+{/* --- REPLACED: NEW CUTE HEADER WITH ANIMATION --- */}
         <header className="mb-6 shrink-0">
-          <div className="flex items-center gap-3">
-            <div className="p-2 bg-indigo-600 rounded-xl text-white shadow-lg shadow-indigo-600/20">
-              <ShieldCheck size={28} />
-            </div>
-            <div>
-              <h1 className="text-3xl font-black text-slate-900 tracking-tight">管理者コンソール</h1>
-              <p className="text-slate-500 text-[10px] font-black uppercase tracking-[0.3em] mt-1">Administrator Command Center</p>
+          <div className="flex items-center flex-wrap gap-2">
+            <h1 className="text-3xl md:text-4xl font-black text-slate-900 tracking-tight">
+              お疲れ様です, {userName}さん
+            </h1>
+            {/* FIX: Constrained the width and height directly on the Lottie component */}
+            <div className="w-12 h-12 md:w-16 md:h-16 flex-shrink-0 -mt-1 sm:-mt-2 flex items-center justify-center overflow-hidden">
+              <Lottie 
+                animationData={waveAnimation} 
+                loop={true} 
+                style={{ width: '100%', height: '100%' }} 
+              />
             </div>
           </div>
+          <p className="text-slate-500 text-[10px] font-black uppercase tracking-[0.3em] mt-2">
+            管理者ワークスペース概要
+          </p>
         </header>
-
         {/* --- TOP CARDS (Clean Minimalist Design) --- */}
         <div className="grid grid-cols-1 md:grid-cols-3 gap-6 shrink-0 mb-6">
           
@@ -255,7 +272,6 @@ export default function AdminDashboard() {
               if (!analysis) return null;
 
               return (
-                // Adding a key forces React to replay the fade-in animation when the member changes!
                 <div className="flex-1 flex flex-col min-h-0 animate-in fade-in slide-in-from-right-4 duration-300" key={currentMember.id}>
                   
                   {/* Black Status Badge */}
