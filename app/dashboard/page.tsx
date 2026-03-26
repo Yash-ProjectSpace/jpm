@@ -298,17 +298,17 @@ export default function DashboardPage() {
                   <h3 className="text-6xl font-black tracking-tighter italic leading-none">{allProjects.length}<span className="text-xl ml-2 not-italic text-indigo-500">件</span></h3>
                   <div className="flex flex-col gap-2.5 pb-1 border-l border-white/10 pl-6">
                     <div className="flex items-center">
-                      <span className="text-[10px] font-bold text-slate-300 tracking-widest uppercase w-16">Active</span>
+                      <span className="text-[10px] font-bold text-slate-300 tracking-widest uppercase w-16">進行中</span>
                       <div className="flex items-center ml-2">
                          <span className="text-sm font-black text-white tabular-nums">{allProjects.filter((p: any) => (p.completionRate || 0) < 100).length}</span>
                          <span className="ml-3 text-xs">🔥</span>
                       </div>
                     </div>
                     <div className="flex items-center">
-                      <span className="text-[10px] font-bold text-slate-300 tracking-widest uppercase w-16">Finished</span>
+                      <span className="text-[10px] font-bold text-slate-300 tracking-widest uppercase w-16">完了</span>
                       <div className="flex items-center ml-2">
                         <span className="text-sm font-black text-white tabular-nums">{allProjects.filter((p: any) => (p.completionRate || 0) >= 100).length}</span>
-                        <span className="ml-3 text-xs text-emerald-400 font-bold">✓</span>
+                        <span className="ml-3 text-xs font-bold">✓</span>
                       </div>
                     </div>
                   </div>

@@ -6,19 +6,27 @@ import { authOptions } from '@/lib/auth';
 export const dynamic = 'force-dynamic';
 
 // GET: Fetch projects (Master Key for Managers, Filtered for Users)
-export async function GET() {
+// FIX 1: Added `request: Request` to force Next.js to ALWAYS fetch fresh data
+export async function GET(request: Request) {
   try {
     const session = await getServerSession(authOptions);
-    if (!session?.user) {
+    if (!session?.user?.email) {
       return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
     }
     
-    const user = session.user as any;
+    // FIX 2: Fetch the exact role from the Database to avoid NextAuth session bugs
+    const dbUser = await prisma.user.findUnique({
+      where: { email: session.user.email }
+    });
+
+    if (!dbUser) {
+      return NextResponse.json({ error: "User not found" }, { status: 404 });
+    }
 
     // THE MASTER KEY: Managers see everything, Users see only their own projects
-    const whereClause = user.role === 'MANAGER' 
+    const whereClause = dbUser.role === 'MANAGER' 
       ? {} 
-      : { members: { some: { id: user.id } } };
+      : { members: { some: { id: dbUser.id } } };
 
     const projects = await prisma.project.findMany({
       where: whereClause,
@@ -27,14 +35,37 @@ export async function GET() {
         members: {
           select: { id: true, name: true, role: true } 
         },
-        tasks: true // Required for the Donut Chart!
+        tasks: true // Required for the Donut Chart & Auto-Completion!
       }
     });
+
+    // FIX 3: SMART AUTO-COMPLETION
+    // If a user finishes all tasks, ensure the project status is marked as '完了'
+    const computedProjects = projects.map(p => {
+      let currentStatus = p.status;
+      
+      if (p.tasks && p.tasks.length > 0) {
+        // Check if every single task is marked as DONE or 完了
+        const allTasksCompleted = p.tasks.every(t => t.status === 'DONE' || t.status === '完了');
+        
+        // If all tasks are done, automatically treat the project as finished for the Admin Dashboard
+        if (allTasksCompleted && currentStatus !== '完了' && currentStatus !== 'COMPLETED') {
+          currentStatus = '完了';
+        }
+      }
+
+      return {
+        ...p,
+        status: currentStatus
+      };
+    });
     
-    return NextResponse.json(projects, {
+    return NextResponse.json(computedProjects, {
       status: 200,
       headers: {
-        'Cache-Control': 'no-store, max-age=0',
+        'Cache-Control': 'no-store, no-cache, must-revalidate, proxy-revalidate',
+        'Pragma': 'no-cache',
+        'Expires': '0',
       },
     });
   } catch (error) {
@@ -47,11 +78,13 @@ export async function GET() {
 export async function POST(request: Request) {
   try {
     const session = await getServerSession(authOptions);
-    if (!session?.user) {
+    if (!session?.user?.email) {
       return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
     }
     
-    const userId = (session.user as any).id;
+    const dbUser = await prisma.user.findUnique({ where: { email: session.user.email } });
+    if (!dbUser) return NextResponse.json({ error: "User not found" }, { status: 404 });
+
     const body = await request.json();
     const { name, description, status, startDate, endDate, driveLink, memberIds } = body;
 
@@ -60,12 +93,12 @@ export async function POST(request: Request) {
     }
 
     // Always keep the creator in the project
-    const membersToConnect = [{ id: userId }];
+    const membersToConnect = [{ id: dbUser.id }];
     
     // Add assigned members, preventing duplication of the creator
     if (memberIds && Array.isArray(memberIds)) {
       memberIds.forEach((id: string) => {
-        if (id !== userId) {
+        if (id !== dbUser.id) {
           membersToConnect.push({ id });
         }
       });
@@ -84,10 +117,8 @@ export async function POST(request: Request) {
         }
       },
       include: {
-        members: {
-          select: { id: true, name: true, role: true }
-        },
-        tasks: true // Required for the Donut Chart!
+        members: { select: { id: true, name: true, role: true } },
+        tasks: true 
       }
     });
 
@@ -133,7 +164,6 @@ export async function PUT(request: Request) {
     }
 
     const body = await request.json();
-    // FIXED: Now we are properly extracting memberIds during an edit!
     const { id, name, description, status, startDate, endDate, driveLink, memberIds } = body;
 
     if (!id) {
@@ -144,13 +174,13 @@ export async function PUT(request: Request) {
     const updateData: any = {
       name,
       description,
-      status,
+      status, // The manual status update from the user
       startDate: startDate ? new Date(startDate) : null,
       endDate: endDate ? new Date(endDate) : null,
       driveLink,
     };
 
-    // FIXED: If memberIds are provided, overwrite the current members list
+    // If memberIds are provided, overwrite the current members list
     if (memberIds && Array.isArray(memberIds)) {
       updateData.members = {
         set: memberIds.map((memberId: string) => ({ id: memberId }))
@@ -161,10 +191,8 @@ export async function PUT(request: Request) {
       where: { id: id },
       data: updateData,
       include: {
-        members: {
-          select: { id: true, name: true, role: true }
-        },
-        tasks: true // FIXED: Added tasks here so the Donut chart doesn't crash after editing!
+        members: { select: { id: true, name: true, role: true } },
+        tasks: true 
       }
     });
 

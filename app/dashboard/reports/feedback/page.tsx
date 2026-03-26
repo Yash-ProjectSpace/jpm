@@ -100,7 +100,6 @@ export default function ReportFeedbackPage() {
         </Link>
         <div>
           <h1 className="text-2xl font-black tracking-tight">フィードバック一覧</h1>
-          <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest mt-1">Feedback History</p>
         </div>
       </header>
 
@@ -143,9 +142,9 @@ export default function ReportFeedbackPage() {
 
               {/* Card Footer: Feedback count & View Details */}
               <div className="pt-4 flex items-center justify-between mt-auto">
-                <div className="text-[10px] font-bold text-slate-400 flex items-center gap-1.5">
+                <div className="text-[8px] font-bold text-slate-400 flex items-center gap-1.5">
                   <MessageSquare size={14} className="text-slate-300" /> 
-                  {report.comments?.length || 0} Feedback
+                  {report.comments?.length || 0} フィードバック
                 </div>
                 <div className="text-[11px] font-black text-indigo-600 flex items-center gap-0.5 group">
                   詳細を見る <ChevronRight size={14} className="group-hover:translate-x-1 transition-transform" />

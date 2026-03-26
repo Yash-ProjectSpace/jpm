@@ -45,7 +45,6 @@ export default function ReportReviewCard({ report }: { report: any }) {
     }
   };
 
-  // --- FIX: ステータスに応じた色を返すヘルパー関数を追加 ---
   const getStatusStyle = (status: string) => {
     switch(status) {
       case 'APPROVED': 
@@ -54,6 +53,20 @@ export default function ReportReviewCard({ report }: { report: any }) {
         return 'bg-rose-100 text-rose-700';
       default: 
         return 'bg-amber-100 text-amber-700'; // PENDINGなど
+    }
+  };
+
+  // --- ADDED: Helper to translate status to Japanese ---
+  const getStatusText = (status: string) => {
+    switch(status) {
+      case 'APPROVED': 
+        return '承認済み';
+      case 'PENDING': 
+        return '確認待ち';
+      case 'REVISION_REQUESTED': 
+        return '修正依頼';
+      default: 
+        return status;
     }
   };
 
@@ -76,15 +89,15 @@ export default function ReportReviewCard({ report }: { report: any }) {
               </p>
             </div>
           </div>
-          {/* FIX: ヘルパー関数を使って正しい色を適用 */}
+          {/* FIX: Use getStatusText to display Japanese */}
           <span className={`text-[9px] font-black px-2 py-0.5 rounded-full uppercase tracking-tighter ${getStatusStyle(report.status)}`}>
-            {report.status}
+            {getStatusText(report.status)}
           </span>
         </div>
 
         {/* Small Preview Title */}
         <h3 className="font-bold text-sm text-slate-900 mb-2 truncate">
-          {report.task?.title || "一般日報 (General Report)"}
+          {report.task?.title || "一般日報 "}
         </h3>
 
         {/* Message Preview */}
@@ -164,10 +177,10 @@ export default function ReportReviewCard({ report }: { report: any }) {
             {/* Modal Actions */}
             <div className="p-6 bg-slate-50/50 border-t border-slate-100">
                <textarea 
-                  value={feedback} 
-                  onChange={(e) => setFeedback(e.target.value)}
-                  placeholder="フィードバックを入力... (修正依頼の場合は必須)" 
-                  className="w-full bg-white border border-slate-200 p-4 rounded-2xl text-sm h-24 outline-none focus:ring-2 focus:ring-indigo-500 text-slate-900 transition-all mb-4 resize-none" 
+                 value={feedback} 
+                 onChange={(e) => setFeedback(e.target.value)}
+                 placeholder="フィードバックを入力... (修正依頼の場合は必須)" 
+                 className="w-full bg-white border border-slate-200 p-4 rounded-2xl text-sm h-24 outline-none focus:ring-2 focus:ring-indigo-500 text-slate-900 transition-all mb-4 resize-none" 
                 />
                 
                 <div className="flex gap-3">

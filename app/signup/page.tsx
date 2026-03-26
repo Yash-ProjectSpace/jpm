@@ -233,10 +233,11 @@ export default function SignupPage() {
                 className={getInputClass(formErrors.department)}
               >
                 <option value="" disabled>選択してください</option>
-                <option value="dx">DX推進部</option>
-                <option value="engineering">開発部</option>
-                <option value="sales">営業部</option>
-                <option value="hr">人事・総務部</option>
+                <option value="Dx">DX事業推進室</option>
+                <option value="HealthInformation">保健情報部</option>
+                <option value="Beauty Payment">美容決済部門</option>
+                <option value="hr">企画推進室・人材開発室</option>
+                <option value="General Affairs">総務部</option>
               </select>
             </div>
             

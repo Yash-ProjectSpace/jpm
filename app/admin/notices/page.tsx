@@ -51,7 +51,6 @@ export default function AdminNoticesPage() {
           </div>
           <div>
             <h1 className="text-3xl font-black text-slate-900 tracking-tight">お知らせ配信</h1>
-            <p className="text-slate-500 text-[10px] font-black uppercase tracking-[0.3em] mt-1">Publish to Keijiban</p>
           </div>
         </div>
 
@@ -61,7 +60,7 @@ export default function AdminNoticesPage() {
           className="flex items-center gap-2 bg-white border border-slate-200 px-5 py-2.5 rounded-2xl text-[11px] font-black uppercase tracking-widest text-slate-600 hover:bg-slate-50 transition-all shadow-sm active:scale-95"
         >
           <LayoutGrid size={16} className="text-amber-500" />
-          すべて見る (View All)
+          すべて見る 
         </Link>
       </header>
 
@@ -74,7 +73,7 @@ export default function AdminNoticesPage() {
               {/* Title Input */}
               <div className="md:col-span-2">
                 <label className="text-xs font-black text-slate-500 uppercase tracking-widest ml-1 mb-2 block">
-                  タイトル (Title)
+                  タイトル 
                 </label>
                 <input 
                   required
@@ -89,7 +88,7 @@ export default function AdminNoticesPage() {
               {/* Category Dropdown */}
               <div>
                 <label className="text-xs font-black text-slate-500 uppercase tracking-widest ml-1 mb-2 block">
-                  カテゴリー (Category)
+                  カテゴリー 
                 </label>
                 <select 
                   value={formData.category}
@@ -106,7 +105,7 @@ export default function AdminNoticesPage() {
             {/* Content Textarea */}
             <div>
               <label className="text-xs font-black text-slate-500 uppercase tracking-widest ml-1 mb-2 block">
-                本文 (Content)
+                本文 
               </label>
               <textarea 
                 required
@@ -125,7 +124,7 @@ export default function AdminNoticesPage() {
                 className="bg-amber-500 hover:bg-amber-600 text-white font-black py-4 px-10 rounded-2xl shadow-lg shadow-amber-200 transition-all flex items-center justify-center gap-2 disabled:opacity-50 disabled:cursor-not-allowed active:scale-95"
               >
                 {isSubmitting ? <Loader2 className="animate-spin" size={20} /> : <Send size={20} />}
-                掲示板に配信する (Publish Notice)
+                掲示板に配信する 
               </button>
             </div>
 

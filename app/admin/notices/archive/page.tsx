@@ -14,6 +14,14 @@ export default function NoticeArchivePage() {
   const [searchQuery, setSearchQuery] = useState("");
   const router = useRouter();
 
+  // カテゴリーの日本語マッピング (Category Translation Map)
+  const categoryMap: Record<string, string> = {
+    'COMPANY': '企業情報',
+    'EVENT': 'イベント',
+    'PROJECT': 'プロジェクト',
+    'OTHER': 'その他'
+  };
+
   const fetchNotices = async () => {
     try {
       const res = await fetch('/api/admin/notices');
@@ -60,7 +68,7 @@ export default function NoticeArchivePage() {
   return (
     <div className="p-8 max-w-[1200px] mx-auto w-full min-h-screen text-slate-900">
       
-{/* Header Area - 横並びと配置の修正 */}
+      {/* Header Area */}
       <div className="flex items-center gap-6 mb-12">
         <div className="flex items-center gap-4 shrink-0">
           <Link href="/admin/notices" className="p-3 bg-white border border-slate-200 rounded-2xl text-slate-400 hover:text-amber-500 transition-all shadow-sm">
@@ -68,20 +76,17 @@ export default function NoticeArchivePage() {
           </Link>
           <div>
             <h1 className="text-3xl font-black tracking-tight">お知らせ一覧</h1>
-            <p className="text-slate-500 text-[10px] font-black uppercase tracking-[0.3em] mt-1">Archive & History</p>
           </div>
         </div>
 
-        {/* Dynamic Search - メンバー管理と同じスタイルに統一 */}
+        {/* Dynamic Search */}
         <div className="relative w-80 group flex items-center">
-          {/* アイコンを右に少し寄せ、重なりを防ぐために z-10 を追加 */}
           <div className="absolute left-5 top-1/2 -translate-y-1/2 flex items-center pointer-events-none z-10">
             <Search className="text-slate-300 group-focus-within:text-amber-500 transition-colors" size={18} />
           </div>
           <input 
             type="text"
             placeholder="タイトルや内容で検索..."
-            /* 左余白を 3.5rem に固定して文字がアイコンに被らないように修正 */
             style={{ paddingLeft: '3.5rem' }}
             className="w-full bg-white border border-slate-200 rounded-2xl py-3 pr-4 text-xs font-bold outline-none focus:ring-2 focus:ring-amber-500 shadow-sm transition-all text-slate-900"
             value={searchQuery}
@@ -103,13 +108,13 @@ export default function NoticeArchivePage() {
               key={notice.id} 
               className="bg-white rounded-[2.5rem] p-8 border border-slate-100 shadow-sm hover:shadow-xl hover:-translate-y-1 transition-all duration-300 flex flex-col group relative overflow-hidden"
             >
-              {/* Category Badge */}
+              {/* Category Badge - UPDATED TO JAPANESE */}
               <div className="flex justify-between items-start mb-6">
                 <span className={`px-3 py-1 rounded-full text-[9px] font-black uppercase tracking-widest ${
                   notice.category === 'COMPANY' ? 'bg-blue-50 text-blue-500' :
                   notice.category === 'EVENT' ? 'bg-rose-50 text-rose-500' : 'bg-indigo-50 text-indigo-500'
                 }`}>
-                  {notice.category}
+                  {categoryMap[notice.category] || notice.category}
                 </span>
                 <button 
                   onClick={() => handleDelete(notice.id)}
@@ -129,7 +134,8 @@ export default function NoticeArchivePage() {
                   <Clock size={12} />
                   {new Date(notice.createdAt).toLocaleDateString('ja-JP')}
                 </div>
-                <Megaphone size={16} className="text-slate-100" />
+                {/* Changed text-slate-100 to text-slate-900 for visibility */}
+                <Megaphone size={16} className="text-slate-900" />
               </div>
             </div>
           ))}

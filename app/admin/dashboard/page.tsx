@@ -10,7 +10,6 @@ import {
   ChevronLeft, ChevronRight, Folder, TrendingUp
 } from 'lucide-react';
 
-// --- NEW: RECHARTS IMPORTS ---
 import { 
   LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer 
 } from 'recharts';
@@ -27,7 +26,6 @@ export default function AdminDashboard() {
   
   const [members, setMembers] = useState<any[]>([]);
   const [allProjects, setAllProjects] = useState<any[]>([]); 
-  // --- NEW: STATE FOR CHART DATA ---
   const [chartData, setChartData] = useState<any[]>([]);
   const [stats, setStats] = useState({
     totalProjects: 0,
@@ -48,21 +46,55 @@ export default function AdminDashboard() {
     const fetchAdminData = async () => {
       try {
         const timestamp = new Date().getTime();
-        // --- UPDATED: FETCH STATS API FOR CHART DATA ---
-        const [memberRes, projectRes, statsRes] = await Promise.all([
+        const [memberRes, projectRes] = await Promise.all([
           fetch(`/api/members?t=${timestamp}`, { cache: 'no-store' }),
-          fetch(`/api/projects?t=${timestamp}`, { cache: 'no-store' }),
-          fetch(`/api/admin/stats?t=${timestamp}`, { cache: 'no-store' })
+          fetch(`/api/projects?t=${timestamp}`, { cache: 'no-store' })
         ]);
         
-        if (memberRes.ok && projectRes.ok && statsRes.ok) {
+        if (memberRes.ok && projectRes.ok) {
           const mData = await memberRes.json();
           const pData = await projectRes.json();
-          const sData = await statsRes.json();
 
           setMembers(mData);
           setAllProjects(pData); 
-          setChartData(sData.chartData || []); // Set the velocity data
+
+          const isProjectFinished = (statusStr: string) => {
+            if (!statusStr) return false;
+            const s = statusStr.toUpperCase();
+            return s === 'COMPLETED' || s === 'DONE' || s === 'FINISHED' || s === '完了';
+          };
+
+          const generatedChartData = [];
+          const now = new Date();
+          
+          for (let i = 5; i >= 0; i--) {
+            const targetDate = new Date(now.getFullYear(), now.getMonth() - i, 1);
+            const monthLabel = `${targetDate.getMonth() + 1}月`; 
+
+            const createdCount = pData.filter((p: any) => {
+              if (!p.createdAt) return false;
+              const d = new Date(p.createdAt);
+              return d.getFullYear() === targetDate.getFullYear() && d.getMonth() === targetDate.getMonth();
+            }).length;
+
+            const completedCount = pData.filter((p: any) => {
+              if (!isProjectFinished(p.status)) return false;
+              
+              const d = new Date(p.updatedAt || p.endDate || p.createdAt);
+              return d.getFullYear() === targetDate.getFullYear() && d.getMonth() === targetDate.getMonth();
+            }).length;
+
+            generatedChartData.push({
+              month: monthLabel,
+              created: createdCount,
+              completed: completedCount
+            });
+          }
+          setChartData(generatedChartData); 
+
+          const totalCount = pData.length;
+          const finishedCount = pData.filter((p: any) => isProjectFinished(p.status)).length;
+          const activeCount = totalCount - finishedCount; 
 
           const twoDaysFromNow = new Date();
           twoDaysFromNow.setDate(twoDaysFromNow.getDate() + 2);
@@ -70,13 +102,13 @@ export default function AdminDashboard() {
           const near = pData.filter((p: any) => {
             if (!p.endDate) return false;
             const dueDate = new Date(p.endDate);
-            return dueDate <= twoDaysFromNow && p.status !== 'COMPLETED';
+            return dueDate <= twoDaysFromNow && !isProjectFinished(p.status); 
           });
 
           setStats({
-            totalProjects: pData.length,
-            inProgress: pData.filter((p: any) => p.status === 'IN_PROGRESS' || p.status === 'STARTED' || p.status === '進行中').length,
-            finished: pData.filter((p: any) => p.status === 'COMPLETED' || p.status === '完了').length,
+            totalProjects: totalCount,
+            inProgress: activeCount,
+            finished: finishedCount,
             nearDeadlines: near
           });
         }
@@ -93,11 +125,17 @@ export default function AdminDashboard() {
   }, []);
 
   const getUserAnalysis = (user: any) => {
-    // ... (Keep existing getUserAnalysis logic as fallback or for other uses)
     if (!user) return null;
     const userProjects = allProjects.filter(p => p.members?.some((m: any) => m.id === user.id));
-    const active = userProjects.filter(p => p.status !== 'COMPLETED' && p.status !== '完了').length;
-    const finished = userProjects.length - active;
+    
+    const isProjectFinished = (statusStr: string) => {
+      if (!statusStr) return false;
+      const s = statusStr.toUpperCase();
+      return s === 'COMPLETED' || s === 'DONE' || s === 'FINISHED' || s === '完了';
+    };
+
+    const finished = userProjects.filter(p => isProjectFinished(p.status)).length;
+    const active = userProjects.length - finished;
 
     if (userProjects.length === 0) {
       return {
@@ -106,8 +144,25 @@ export default function AdminDashboard() {
         text: '"現在割り当てられているプロジェクトはありません。リソースを活用するため、新しいタスクの割り当てを検討してください。"'
       };
     }
-    // ... rest of logic
-    return { tag: '順調', title: 'Loading...', text: '...' }; 
+    if (active > 3) {
+      return {
+        tag: 'オーバーワーク注意', tagColor: 'bg-rose-600',
+        title: `${user.name}の負荷が高くなっています`,
+        text: `"現在${active}件のプロジェクトを同時に抱えています。パフォーマンス低下を防ぐため、タスクの再配分を推奨します。"`
+      };
+    }
+    if (active > 0) {
+      return {
+        tag: '順調な進捗', tagColor: 'bg-slate-900',
+        title: `${user.name}のワークフローは理想的です`,
+        text: `"現在${active}件のプロジェクトが進行中です。バランスの取れたペースで稼働しています。引き続き現在の体制を維持してください。"`
+      };
+    }
+    return {
+      tag: 'タスク完了', tagColor: 'bg-emerald-600',
+      title: `${user.name}のタスクは全て完了しました`,
+      text: `"担当していた${finished}件のプロジェクトが全て完了しました。素晴らしいパフォーマンスです。次のアサインの準備ができています。"`
+    };
   };
 
   const handlePrevAi = () => {
@@ -131,7 +186,10 @@ export default function AdminDashboard() {
     <div className="h-screen flex flex-col bg-[#f8fafc] overflow-hidden">
       <div className="flex-1 flex flex-col min-h-0 max-w-[1500px] mx-auto w-full p-6 lg:p-8">
         
-        <header className="mb-6 shrink-0">
+        <header 
+          className="mb-6 shrink-0 cursor-pointer hover:opacity-80 transition-opacity"
+          onClick={() => router.push('/dashboard')}
+        >
           <div className="flex items-center flex-wrap gap-2">
             <h1 className="text-3xl md:text-4xl font-black text-slate-900 tracking-tight">
               お疲れ様です, {userName}さん
@@ -146,7 +204,6 @@ export default function AdminDashboard() {
         </header>
 
         <div className="grid grid-cols-1 md:grid-cols-3 gap-6 shrink-0 mb-6">
-          {/* Top Cards (Projects, Members, Deadlines) - Kept exactly the same */}
           <div onClick={() => router.push('/admin/projects')} className="h-44 bg-slate-900 rounded-[2rem] p-6 text-white shadow-xl hover:-translate-y-1 transition-transform cursor-pointer flex flex-col justify-between">
             <div className="flex justify-between items-start">
               <div className="border border-slate-600 rounded-full px-4 py-1.5 text-xs font-bold tracking-widest text-slate-100">ポートフォリオ</div>
@@ -160,44 +217,19 @@ export default function AdminDashboard() {
                   <span className="text-sm font-bold text-slate-400">件</span>
                 </div>
               </div>
-<div className="space-y-2 pb-2">
-  {/* Row: 進行中 */}
-  <div className="flex items-center justify-end">
-    {/* Fixed width for Label */}
-    <span className="text-[10px] font-black tracking-widest text-slate-500 w-10 text-left">
-      進行中
-    </span>
-    
-    {/* Fixed width for Number (Centered or Right aligned) */}
-    <span className="text-white text-base font-black w-5 text-center font-mono">
-      {stats.inProgress}
-    </span>
-    
-    {/* Fixed width for Emoji */}
-    <span className="text-amber-500 text-sm w-5 flex justify-center">
-      🔥
-    </span>
-  </div>
-
-  {/* Row: 完了 */}
-  <div className="flex items-center justify-end">
-    {/* Fixed width for Label */}
-    <span className="text-[10px] font-black tracking-widest text-slate-500 w-10 text-left">
-      完了
-    </span>
-    
-    {/* Fixed width for Number (Must match the one above) */}
-    <span className="text-white text-base font-black w-5 text-center font-mono">
-      {stats.finished}
-    </span>
-    
-    {/* Fixed width for Emoji */}
-    <span className="text-purple-400 text-sm font-black w-5 flex justify-center">
-      ✓
-    </span>
-  </div>
-</div>
-   </div>
+              <div className="space-y-2 pb-2">
+                <div className="flex items-center justify-end">
+                  <span className="text-[10px] font-black tracking-widest text-slate-500 w-10 text-left">進行中</span>
+                  <span className="text-white text-base font-black w-5 text-center font-mono">{stats.inProgress}</span>
+                  <span className="text-amber-500 text-sm w-5 flex justify-center">🔥</span>
+                </div>
+                <div className="flex items-center justify-end">
+                  <span className="text-[10px] font-black tracking-widest text-slate-500 w-10 text-left">完了</span>
+                  <span className="text-white text-base font-black w-5 text-center font-mono">{stats.finished}</span>
+                  <span className="text-purple-400 text-sm font-black w-5 flex justify-center">✓</span>
+                </div>
+              </div>
+            </div>
           </div>
 
           <div onClick={() => router.push('/admin/members')} className="h-44 bg-white rounded-[2rem] p-6 shadow-sm border border-slate-100 hover:-translate-y-1 transition-transform cursor-pointer flex flex-col justify-between">
@@ -233,7 +265,6 @@ export default function AdminDashboard() {
           </div>
         </div>
 
-        {/* --- REPLACED: AI ANALYSIS BOX WITH PROJECT VELOCITY CHART --- */}
         <div className="flex-1 flex flex-col min-h-0 bg-white rounded-[2rem] border border-slate-100 p-8 shadow-sm relative overflow-hidden">
           <div className="absolute left-0 top-10 bottom-10 w-2.5 bg-indigo-600 rounded-r-xl"></div>
           
@@ -293,39 +324,60 @@ export default function AdminDashboard() {
         </div>
       </div>
 
-      {/* DYNAMIC CURVED MODAL - Kept exactly the same */}
       {showDeadlineModal && (
-        <div className="fixed inset-0 z-[100] flex items-center justify-center p-6">
-          <div className="absolute inset-0 bg-slate-900/60 backdrop-blur-md transition-opacity" onClick={() => setShowDeadlineModal(false)} />
-          <div style={{ borderRadius: '60px' }} className="bg-white w-full max-w-xl shadow-2xl relative z-10 animate-in zoom-in-95 duration-300 flex flex-col max-h-[80vh] border border-white/20 overflow-hidden">
-            <div className="px-10 py-8 border-b border-slate-50 flex justify-between items-center bg-rose-50/20">
-              <div className="flex items-center gap-4">
-                <div style={{ borderRadius: '18px' }} className="p-3 bg-rose-600 text-white shadow-lg shadow-rose-200"><Clock size={22}/></div>
+        <div className="fixed inset-0 z-[100] flex items-center justify-center p-4 sm:p-6">
+          <div className="absolute inset-0 bg-slate-900/50 backdrop-blur-sm transition-opacity" onClick={() => setShowDeadlineModal(false)} />
+          
+          <div className="bg-white w-full max-w-2xl rounded-[2.5rem] shadow-2xl relative z-10 animate-in zoom-in-95 duration-200 flex flex-col max-h-[85vh] overflow-hidden border border-white">
+            
+            <div className="px-8 py-7 border-b border-rose-100 flex justify-between items-center bg-rose-50/50">
+              <div className="flex items-center gap-5">
+                <div className="p-4 bg-rose-500 text-white rounded-2xl shadow-lg shadow-rose-200">
+                  <Clock size={26} strokeWidth={2.5} />
+                </div>
                 <div className="flex flex-col">
-                  <h2 className="text-xl font-black text-slate-900 tracking-tight leading-none">Urgent Deadlines</h2>
-                  <p className="text-[9px] font-black text-rose-600 uppercase tracking-[0.2em] mt-1.5">Action within 48h</p>
+                  <h2 className="text-2xl font-black text-slate-900 tracking-tight">締切間近のプロジェクト</h2>
+                  <p className="text-[11px] font-black text-rose-500 uppercase tracking-widest mt-1.5">48時間以内に締切</p>
                 </div>
               </div>
-              <button onClick={() => setShowDeadlineModal(false)} className="p-2.5 bg-white border border-slate-100 hover:bg-rose-50 text-slate-400 hover:text-rose-600 rounded-full transition-all shadow-sm"><X size={20}/></button>
+              <button onClick={() => setShowDeadlineModal(false)} className="p-3 bg-white border border-slate-200 hover:bg-rose-50 text-slate-400 hover:text-rose-600 rounded-full transition-all shadow-sm active:scale-95">
+                <X size={20}/>
+              </button>
             </div>
-            <div className="flex-1 overflow-y-auto p-10 space-y-4 custom-scrollbar">
+
+            <div className="flex-1 overflow-y-auto p-8 space-y-4 custom-scrollbar bg-slate-50/30">
               {stats.nearDeadlines.length > 0 ? (
                 stats.nearDeadlines.map((p: any) => (
-                  <div key={p.id} style={{ borderRadius: '30px' }} className="group p-5 bg-slate-50/50 border border-slate-100 flex items-center justify-between hover:bg-white hover:shadow-xl transition-all duration-300">
-                    <div className="flex items-center gap-4">
-                      <div style={{ borderRadius: '14px' }} className="w-12 h-12 bg-white flex items-center justify-center shadow-sm text-slate-400 group-hover:text-rose-600 transition-all"><Calendar size={20} /></div>
+                  <div 
+                    key={p.id} 
+                    // --- FIX APPLIED HERE: Pass projectId securely via URL params! ---
+                    onClick={() => router.push(`/admin/projects?projectId=${p.id}`)}
+                    className="group p-5 bg-white border border-slate-200 rounded-[1.5rem] flex items-center justify-between hover:border-rose-300 hover:shadow-lg transition-all duration-300 cursor-pointer active:scale-[0.98]"
+                  >
+                    <div className="flex items-center gap-5">
+                      <div className="w-14 h-14 bg-rose-50 rounded-[1rem] flex items-center justify-center text-rose-500 group-hover:bg-rose-500 group-hover:text-white transition-colors">
+                        <Calendar size={24} />
+                      </div>
                       <div>
-                        <h4 className="font-black text-slate-900 text-md tracking-tight">{p.name}</h4>
-                        <p className="text-[10px] font-bold text-rose-600 uppercase tracking-widest mt-0.5">Ends: {new Date(p.endDate).toLocaleDateString()}</p>
+                        <h4 className="font-black text-slate-900 text-lg tracking-tight">{p.name}</h4>
+                        <p className="text-xs font-bold text-slate-500 mt-1 flex items-center gap-1.5">
+                          <AlertCircle size={14} className="text-rose-500" />
+                          締切日: <span className="text-rose-600">{new Date(p.endDate).toLocaleDateString('ja-JP')}</span>
+                        </p>
                       </div>
                     </div>
-                    <button onClick={() => router.push(`/admin/projects/${p.id}`)} className="p-3.5 bg-white text-slate-400 rounded-xl hover:text-white hover:bg-indigo-600 shadow-sm transition-all"><ExternalLink size={18} /></button>
+                    <div className="p-3 text-slate-300 group-hover:text-rose-500 transition-colors">
+                      <ChevronRight size={24} />
+                    </div>
                   </div>
                 ))
               ) : (
-                <div style={{ borderRadius: '40px' }} className="text-center py-20 bg-slate-50/50 border-2 border-dashed border-slate-100">
-                  <AlertCircle size={40} className="text-slate-200 mx-auto mb-3" />
-                  <p className="text-slate-400 font-black uppercase tracking-widest text-[9px]">No urgent deadlines found</p>
+                <div className="text-center py-20 bg-white rounded-[2rem] border-2 border-dashed border-slate-200">
+                  <div className="w-20 h-20 bg-slate-50 rounded-full flex items-center justify-center mx-auto mb-4">
+                    <ShieldCheck size={32} className="text-emerald-400" />
+                  </div>
+                  <h3 className="text-lg font-black text-slate-700">現在、締切間近のプロジェクトはありません</h3>
+                  <p className="text-sm font-bold text-slate-400 mt-2">すべてのプロジェクトは順調に進行しています。</p>
                 </div>
               )}
             </div>

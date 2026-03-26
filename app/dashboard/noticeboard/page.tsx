@@ -140,7 +140,6 @@ export default function NoticePage() {
       <div className="flex justify-between items-end mb-10">
         <div>
           <h1 className="text-3xl font-black text-slate-900 tracking-tight">社内掲示板</h1>
-          <p className="text-slate-400 mt-1 text-[10px] font-black uppercase tracking-[0.3em]">Company Bulletins & Updates</p>
         </div>
         {isManager && (
           <button 
@@ -290,7 +289,7 @@ export default function NoticePage() {
                     <User size={12} className="text-slate-400" />
                   </div>
                   <p className="text-[10px] font-black text-slate-500 uppercase tracking-widest pr-2">
-                    BY {selectedNotice.author?.name || 'ADMIN'}
+                    {selectedNotice.author?.name || 'ADMIN'} から
                   </p>
                </div>
             </div>

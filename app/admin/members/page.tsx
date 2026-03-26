@@ -14,7 +14,6 @@ export default function AdminMembersPage() {
   const fetchMembers = async () => {
     setLoading(true);
     try {
-      // 修正: 正しいバックエンドのパスに変更
       const res = await fetch('/api/admin/members');
       if (res.ok) {
         const data = await res.json();
@@ -31,14 +30,12 @@ export default function AdminMembersPage() {
     fetchMembers();
   }, []);
 
-  // 削除機能のみを残しました
   const handleDelete = async (id: string) => {
     if (!confirm("このメンバーを削除してもよろしいですか？この操作は取り消せません。")) return;
     try {
-      // 修正: 正しいバックエンドのパスに変更
       const res = await fetch(`/api/admin/members?id=${id}`, { method: 'DELETE' });
       if (res.ok) {
-        fetchMembers(); // 成功したらリストを再取得
+        fetchMembers();
       } else {
         alert("削除に失敗しました。サーバーエラーです。");
       }
@@ -88,36 +85,36 @@ export default function AdminMembersPage() {
           <Loader2 className="animate-spin text-indigo-600" size={40} />
         </div>
       ) : (
-        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-5">
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
           {filteredMembers.map((member) => (
             <div 
               key={member.id} 
-              className="bg-white rounded-[2rem] p-6 border border-slate-100 shadow-sm hover:shadow-md transition-all duration-300 flex flex-col items-center text-center relative overflow-hidden"
+              className="bg-white rounded-[2.5rem] p-6 border border-slate-100 shadow-sm hover:shadow-xl hover:-translate-y-2 hover:border-indigo-200 active:scale-95 transition-all duration-300 ease-out flex flex-col items-center text-center relative overflow-hidden group"
             >
               {/* Avatar Section */}
-              <div className="w-16 h-16 rounded-full bg-slate-50 mb-3 overflow-hidden border-2 border-slate-50 shadow-inner relative">
+              <div className="w-16 h-16 rounded-full bg-slate-50 mb-4 overflow-hidden border-2 border-slate-50 shadow-inner relative group-hover:border-indigo-100 transition-colors">
                 <img 
                   src={member.image || `https://ui-avatars.com/api/?name=${encodeURIComponent(member.name)}&background=f1f5f9&color=6366f1&bold=true`} 
                   alt={member.name} 
                   className="w-full h-full object-cover" 
                 />
                 {member.role === 'MANAGER' && (
-                  <div className="absolute bottom-0 right-0 bg-indigo-600 text-white p-0.5 rounded-full border border-white">
+                  <div className="absolute bottom-0 right-0 bg-indigo-600 text-white p-0.5 rounded-full border border-white shadow-sm">
                     <ShieldCheck size={10} />
                   </div>
                 )}
               </div>
 
               {/* Name and Department */}
-              <h3 className="text-sm font-black text-slate-900 mb-1">{member.name}</h3>
+              <h3 className="text-sm font-black text-slate-900 mb-1 group-hover:text-indigo-600 transition-colors">{member.name}</h3>
               <p className="text-[10px] font-bold text-slate-400 mb-2 uppercase tracking-tighter">
                 {member.department || "部署未設定"}
               </p>
               
               {/* Role Badge */}
-              <div className={`px-2.5 py-0.5 rounded-full text-[8px] font-black uppercase tracking-widest mb-3
-                ${member.role === 'MANAGER' ? 'bg-indigo-50 text-indigo-600' : 'bg-slate-50 text-slate-400'}`}>
-                {member.role}
+              <div className={`px-3 py-1 rounded-full text-[8px] font-black uppercase tracking-widest mb-4 transition-all
+                ${member.role === 'MANAGER' ? 'bg-indigo-50 text-indigo-600 ring-1 ring-indigo-100' : 'bg-slate-50 text-slate-400'}`}>
+                {member.role === 'MANAGER' ? 'マネージャー' : '社員'}
               </div>
 
               {/* Email */}
@@ -125,8 +122,8 @@ export default function AdminMembersPage() {
                 <Mail size={10} /> {member.email}
               </div>
 
-              {/* Action Buttons (Only Delete remains, taking full width) */}
-              <div className="w-full pt-4 border-t border-slate-50">
+              {/* Action Buttons */}
+              <div className="w-full pt-4 border-t border-slate-50 mt-auto">
                 <button 
                   onClick={() => handleDelete(member.id)}
                   className="w-full flex items-center justify-center gap-1.5 py-2.5 rounded-xl bg-slate-50 text-slate-400 hover:bg-rose-50 hover:text-rose-600 transition-all text-[10px] font-black"
