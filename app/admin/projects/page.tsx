@@ -548,7 +548,7 @@ export default function ProjectsPage() {
               </div>
 
               <div className="mb-8">
-                <h4 className="text-[10px] font-black text-slate-400 uppercase tracking-widest mb-2">Project Description</h4>
+                <h4 className="text-[10px] font-black text-slate-400 uppercase tracking-widest mb-2">プロジェクト説明</h4>
                 <p className="text-sm text-slate-700 font-medium leading-relaxed">{selectedProject.description || "説明はありません。"}</p>
               </div>
 

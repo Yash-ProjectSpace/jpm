@@ -55,7 +55,8 @@ export default function MembersPage() {
               {/* RESTORED: group-hover:scale-105 for the avatar zoom effect */}
               <div className="w-24 h-24 rounded-full bg-slate-50 mb-4 overflow-hidden border-4 border-slate-50 shadow-inner group-hover:scale-105 transition-transform duration-300 relative">
                 <img 
-                  src={member.avatar || `https://ui-avatars.com/api/?name=${encodeURIComponent(member.name)}&background=f1f5f9&color=6366f1&bold=true`} 
+                  // --- FIX: Changed to member.image to match Prisma's default schema ---
+                  src={member.image || member.avatar || `https://ui-avatars.com/api/?name=${encodeURIComponent(member.name || 'User')}&background=f8fafc&color=4f46e5&bold=true`} 
                   alt={member.name} 
                   className="w-full h-full object-cover" 
                 />

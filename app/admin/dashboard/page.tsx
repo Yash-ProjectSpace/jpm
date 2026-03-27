@@ -206,7 +206,7 @@ export default function AdminDashboard() {
         <div className="grid grid-cols-1 md:grid-cols-3 gap-6 shrink-0 mb-6">
           <div onClick={() => router.push('/admin/projects')} className="h-44 bg-slate-900 rounded-[2rem] p-6 text-white shadow-xl hover:-translate-y-1 transition-transform cursor-pointer flex flex-col justify-between">
             <div className="flex justify-between items-start">
-              <div className="border border-slate-600 rounded-full px-4 py-1.5 text-xs font-bold tracking-widest text-slate-100">ポートフォリオ</div>
+              <div className="border border-slate-600 rounded-full px-4 py-1.5 text-xs font-bold tracking-widest text-slate-100">プロジェクト</div>
               <div className="text-indigo-400 bg-slate-800 p-3 rounded-2xl"><Briefcase size={20} /></div>
             </div>
             <div className="flex justify-between items-end">

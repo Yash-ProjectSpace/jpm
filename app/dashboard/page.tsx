@@ -250,7 +250,8 @@ export default function DashboardPage() {
             <div className="w-full flex items-center justify-between mb-1">
               <div className="flex items-center gap-2 text-slate-900 font-black">
                 <BarChart3 size={18} className="text-indigo-600" />
-                <h3 className="text-[11px] uppercase tracking-widest">しんちょく</h3>
+                <h3 className="text-[11px] uppercase tracking-widest">進捗
+                </h3>
               </div>
               {shinchokuProjects.length > 1 && (
                 <div className="flex gap-1 bg-white p-1 rounded-xl border border-slate-100">
